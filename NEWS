@@ -1,0 +1,9 @@
+# ---------------------------------------------------------------------
+#  version 0.4
+
+- first "public" release
+- no known bugs
+
+
+# Known Todos:
+- axes labels in plot.RSA(type="3d") have the correct rotation for the default plot rotation, but they do not rotate with the plot.

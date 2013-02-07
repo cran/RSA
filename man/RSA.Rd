@@ -1,0 +1,93 @@
+\name{RSA}
+\alias{RSA}
+\title{Performs several RSA model tests on a data set with two predictors}
+\usage{
+  RSA(formula, data = NULL, sample.cor = NULL,
+    sample.nobs = NULL, center = FALSE, scale = FALSE,
+    na.rm = FALSE, out.rm = TRUE, breakline = FALSE,
+    models = "default", verbose = TRUE, ...)
+}
+\arguments{
+  \item{formula}{A formula in the form \code{z ~ x*y},
+  specifying the variable names used from the data frame,
+  where z is the name of the response variable, and x and y
+  are the names of the predictor variables.}
+
+  \item{data}{A data frame with the variables}
+
+  \item{sample.cor}{A matrix with the sample correlation
+  matrix - you have to provide either raw data in the data
+  argument, or a sample.cor and a sample.nobs}
+
+  \item{sample.nobs}{Number of observations in the sample
+  (goes along with sample.cor)}
+
+  \item{center}{Should predictor variables be centered on
+  the sample mean before analyses?}
+
+  \item{scale}{Should predictor variables be scaled to SD =
+  1 before analyses?}
+
+  \item{na.rm}{Remove missings before proceeding?}
+
+  \item{out.rm}{Should outliers according to Bollen &
+  Jackman (1980) criteria be excluded from analyses?}
+
+  \item{breakline}{Should the breakline in the
+  unconstrained absolute difference model be allowed (the
+  breakline is possible from the model formulation, but
+  empirically rather unrealistic ...)}
+
+  \item{verbose}{Should additional information during the
+  computation process be printed?}
+
+  \item{models}{A vector with names of all models that
+  should be computed. Should be any from c("absdiff",
+  "absunc", "diff", "additive", "IA", "sqdiff", "SSD",
+  "SRSD", "full"). For \code{models="all"}, all models are
+  computed, for \code{models="default"} all models but
+  absolute difference models are computed.}
+
+  \item{...}{Additional parameters passed to the lavaan sem
+  function. For example: \code{se="boot"}}
+}
+\description{
+  Performs several RSA model tests on a data set with two
+  predictors
+}
+\details{
+  No details so far.
+}
+\examples{
+# Compute response surface from a fake data set
+set.seed(0xBEEF)
+n <- 300
+err <- 15
+x <- rnorm(n, 0, 5)
+y <- rnorm(n, 0, 5)
+df <- data.frame(x, y)
+df <- within(df, {
+	diff <- x-y
+	absdiff <- abs(x-y)
+	sqdiff <- (x-y)^2
+	z.diff <- diff + rnorm(n, 0, err)
+	z.abs <- absdiff + rnorm(n, 0, err)
+	z.sq <- sqdiff + rnorm(n, 0, err)
+	z.add <- diff + 0.4*x + rnorm(n, 0, err)
+	z.complex <- 0.4*x + - 0.2*x*y + + 0.1*x^2 - 0.03*y^2 + rnorm(n, 0, err)
+})
+
+r1 <- RSA(z.sq~x*y, df)
+print(r1)
+compare(r1)
+plot(r1)
+plot(r1, model="SRSD")
+plot(r1, model="full", type="c")
+getPar(r1, "coef")	# print model parameters including SE and CI
+RSA.ST(r1)	# get surface parameters
+}
+\seealso{
+  \code{\link{demoRSA}}, \code{\link{plotRSA}},
+  \code{\link{RSA.ST}}
+}
+

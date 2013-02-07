@@ -1,0 +1,130 @@
+# helpers.R
+
+AICc.lavaan <- function(object, second.ord=TRUE, c.hat = 1, return.K = FALSE){
+	object <- as.list(fitMeasures(object))
+  npar<-object$baseline.df - object$df
+	if(return.K==T) return(object$npar)
+	if(second.ord==F && c.hat>1) return(-2*object$logl/c.hat+2*npar)
+	if(second.ord==F) return(object$aic)
+    if(c.hat>1) return( -2*object$logl/c.hat+2*npar + 2*( npar*(object$npar+1))/(object$ntotal-npar-1))
+    object$aic + 2*( npar*(npar+1))/(object$ntotal-npar-1)
+}
+
+
+
+add.variables <- function(formula, df) {
+	IV1 <- all.vars(formula)[2]
+	IV2 <- all.vars(formula)[3]
+	
+	IV12 <- paste0(IV1, "2")
+	IV22 <- paste0(IV2, "2")
+	IV_IA <- paste0(IV1, "_", IV2)
+	
+	df[, IV12] <- df[, IV1]^2
+	df[, IV22] <- df[, IV2]^2
+	df[, IV_IA] <- df[, IV1]*df[, IV2]
+	
+	# three new variables for piecewise regression (test absolute difference score) - Edwards (2002) model
+	df$W.JRE <- ifelse(df[, IV1] >= df[, IV2], 0, 1)
+	df[, paste0("W.JRE_", IV1)] <- df$W.JRE*df[, IV1]
+	df[, paste0("W.JRE_", IV2)] <- df$W.JRE*df[, IV2]
+	
+	# three new variables for piecewise regression (test absolute difference score) - new model Schönbrodt 2012
+	df$W <- ifelse(df[, IV1] >= df[, IV2], 1, -1)
+	df$W[df[, IV1] == df[, IV2]] <- 0
+	df[, paste0("W_", IV1)] <- df$W*df[, IV1]
+	df[, paste0("W_", IV2)] <- df$W*df[, IV2]
+	
+	df$diff <- df[, IV2] - df[, IV1]
+	df$sqdiff <- df$diff^2
+	df$absdiff <- abs(df$diff)
+	return(df)
+}
+
+
+sig2star <- function(val) {
+	
+	res <- val
+	
+	for (i in 1:length(val)) {
+		res[i] <- ""
+		if (is.na(val[i])) next();
+		if (val[i] <= 0.1) res[i] <- "\U2020"
+		if (val[i] <= 0.05) res[i] <- "*"
+		if (val[i] <= 0.01) res[i] <- "**"
+		if (val[i] <= 0.001) res[i] <- "***"
+	}
+	
+	return(res)
+}
+
+
+# returns number of maximum free parameters of a regression model
+getFreeParameters <- function(model) {
+	VARS <- nrow(inspect(model, "free")$beta)	# number of variables
+	df.max <- (VARS*(VARS+1))/2		# maximum df
+	df.pred <- ((VARS-1)*(VARS))/2	+1 # df bound in the predictors (i.e., (co)variances of the predictors & variance of DV)
+	free.max <- df.max - df.pred	# maximum of free parameters
+	return(free.max)
+}
+
+
+
+
+# helper function: takes a list of lavaan models (can include NULLs), and returns the usual anova object
+anovaList <- function(modellist) {
+	# a0: list without NULLs
+	mods <- modellist[!sapply(modellist, function(x) is.null(x))]
+	mods <- mods[!sapply(mods, function(x) !inspect(x, "converged"))]
+	
+	if (length(mods) == 0) {
+		return(list(n.mods=0))
+	}
+		
+    # put them in order (using number of free parameters)
+    nfreepar <- sapply(mods, function(x) x@Fit@npar)
+    if(any(duplicated(nfreepar))) { ## FIXME: what to do here?
+        # what, same number of free parameters?
+        # maybe, we need to count number of constraints
+        ncon <- sapply(mods, function(x) { nrow(x@Model@con.jac) })
+        nfreepar <- nfreepar - ncon
+    }
+
+    mods <- mods[order(nfreepar, decreasing = TRUE)]		
+		
+	pStr <- sapply(1:length(mods), function(x){ 
+		if(x==1) {
+			paste("mods[[",x,"]]",sep = "")
+		} else {
+			paste("force(mods[[",x,"]])",sep = "")
+		}
+	})
+	pStr2 <- paste0("anova(", paste(pStr, collapse=", "), ")")
+	
+	a1 <- eval(parse(text = pStr2))
+	
+	if (length(mods) > 1) {
+		rownames(a1) <- names(mods)
+	}
+	
+	attr(a1, "n.mods") <- length(mods)
+	return(list(ANOVA=a1, models=mods, n.mods=length(mods)))
+}
+
+
+# computes the coordinates of an arbitrary intersection of the surface,
+# defined by a line on the X-Y plane (p0 = intercept, p1=slope)
+getIntersect <- function(b0=0, x=0, y=0, x2=0, xy=0, y2=0, p0, p1, xlim=c(-2, 2), grid=21) {
+	X <- seq(min(xlim), max(xlim), length.out=grid)
+	Y <- p0 + p1*X
+	n <- data.frame(X, Y)
+	n2 <- add.variables(z~X+Y, n)
+	n2$Z <- b0 + colSums(c(x, y, x2, y2, xy)*t(n2[, c(1:5)]))
+	return(n2[, c("X", "Y", "Z")])
+}
+
+
+model <- function(x, model="full") x$models[[model]]
+
+
+

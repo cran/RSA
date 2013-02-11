@@ -5,6 +5,7 @@
   plotRSA(x = NULL, y = 0, x2 = 0, y2 = 0, xy = 0, w = 0,
     wx = 0, wy = 0, b0 = 0, xlim = NULL, ylim = NULL,
     zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL,
+    surface = "predict", lambda = NULL,
     rot = list(x = -45, y = 45, z = 35),
     label.rot = list(x = 45, y = -25, z = 94),
     gridsize = 21, bw = FALSE, legend = TRUE,
@@ -49,6 +50,17 @@
   \item{ylab}{Label for y axis}
 
   \item{zlab}{Label for z axis}
+
+  \item{surface}{Method for the calculation of the surface
+  z values. "predict" takes the predicted values from the
+  model, "smooth" uses a thin plate smoother (function
+  \code{Tps} from the \code{fields} package) of the raw
+  data}
+
+  \item{lambda}{lambda parameter for the smoother. Default
+  (NULL) means that it is estimated by the smoother
+  function. Small lambdas around 1 lead to rugged surfaces,
+  big lambdas to very smooth surfaces.}
 
   \item{rot}{Rotation of the 3d surface plot (when type ==
   "3d")}

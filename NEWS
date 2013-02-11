@@ -1,4 +1,13 @@
 # ---------------------------------------------------------------------
+# version 0.5.1
+
+New features
+
+- Added parameter "surface" to plot.RSA. surface = "predict" (default) plots the predicted surface. This is the known behavior of the function. surface = "smooth" plots a 2d-smoothed surface of the raw data (employs the Tps function of the fields package).
+
+
+
+# ---------------------------------------------------------------------
 #  version 0.4
 
 - first "public" release

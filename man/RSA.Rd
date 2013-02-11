@@ -1,5 +1,7 @@
+\docType{package}
 \name{RSA}
 \alias{RSA}
+\alias{RSA-package}
 \title{Performs several RSA model tests on a data set with two predictors}
 \usage{
   RSA(formula, data = NULL, sample.cor = NULL,
@@ -54,6 +56,10 @@
 \description{
   Performs several RSA model tests on a data set with two
   predictors
+
+  Main functions are: \code{\link{RSA}},
+  \code{\link{demoRSA}}, \code{\link{plotRSA}},
+  \code{\link{RSA.ST}}, \code{\link{compare}}.
 }
 \details{
   No details so far.
@@ -85,6 +91,13 @@ plot(r1, model="SRSD")
 plot(r1, model="full", type="c")
 getPar(r1, "coef")	# print model parameters including SE and CI
 RSA.ST(r1)	# get surface parameters
+
+# Motive congruency example
+data(motcon)
+r.m <- RSA(negAct~EM*IM, motcon)
+}
+\references{
+  ...
 }
 \seealso{
   \code{\link{demoRSA}}, \code{\link{plotRSA}},

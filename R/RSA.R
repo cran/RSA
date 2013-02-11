@@ -50,6 +50,10 @@
 #' plot(r1, model="full", type="c")
 #' getPar(r1, "coef")	# print model parameters including SE and CI
 #' RSA.ST(r1)	# get surface parameters
+#'
+#' # Motive congruency example
+#' data(motcon)
+#' r.m <- RSA(negAct~EM*IM, motcon)
 
 
 # formula <- z.sq~x*y; data <- df; center=FALSE; scale=FALSE; out.rm=TRUE; breakline=FALSE; verbose=TRUE

@@ -29,6 +29,8 @@
 #' @param xlab Label for x axis
 #' @param ylab Label for y axis
 #' @param zlab Label for z axis
+#' @param surface Method for the calculation of the surface z values. "predict" takes the predicted values from the model, "smooth" uses a thin plate smoother (function \code{Tps} from the \code{fields} package) of the raw data
+#' @param lambda lambda parameter for the smoother. Default (NULL) means that it is estimated by the smoother function. Small lambdas around 1 lead to rugged surfaces, big lambdas to very smooth surfaces.
 #' @param rot Rotation of the 3d surface plot (when type == "3d")
 #' @param label.rot Rotation of the axis labls (when type == "3d")
 #' @param gridsize Number of grid nodes in each dimension
@@ -86,11 +88,12 @@
 
 #b0=-9; x=0; y=0; x2=0; y2=0; xy=0; w=0; wx=1; wy=-1;  zlim=NULL; xlim=c(-2, 2); ylim=c(-2, 2); rot=list(x=-45, y=45, z=35); legend=TRUE; cex=1.2; type="3d"; points=TRUE; demo=FALSE; model="full"; fit=NULL; link="identity"; showSP=TRUE; gridsize=21;bw=FALSE; pal=NULL; axes=c("LOC", "LOIC", "PA1", "PA2"); distance=c(1, 1, 1); tck=c(1, 1, 1); xlab="X"; ylab="Y"; zlab="Z"; showBorder=TRUE;
 
-plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=NULL, ylim=NULL, zlim=NULL, xlab=NULL, ylab=NULL, zlab=NULL, rot=list(x=-45, y=45, z=35), label.rot=list(x=45, y=-25, z=94), gridsize=21, bw=FALSE, legend=TRUE, showSP=TRUE, axes=c("LOC", "LOIC", "PA1", "PA2"), cex=1.2, type="3d", points=FALSE, model="full", demo=FALSE, fit=NULL, link="identity", distance=c(1, 1, 1), tck=c(1, 1, 1), showBorder=TRUE, showContour=FALSE, pal=NULL, ...) {
+plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=NULL, ylim=NULL, zlim=NULL, xlab=NULL, ylab=NULL, zlab=NULL, surface="predict", lambda=NULL, rot=list(x=-45, y=45, z=35), label.rot=list(x=45, y=-25, z=94), gridsize=21, bw=FALSE, legend=TRUE, showSP=TRUE, axes=c("LOC", "LOIC", "PA1", "PA2"), cex=1.2, type="3d", points=FALSE, model="full", demo=FALSE, fit=NULL, link="identity", distance=c(1, 1, 1), tck=c(1, 1, 1), showBorder=TRUE, showContour=FALSE, pal=NULL, ...) {
 	
 	if (!all.equal(xlim, ylim)) warning("Axes dimensions are not equal. The visual diagonal is *not* the line of congruence! Consider choosing the same values for xlim and ylim.")
 	
 	type <- match.arg(type, c("interactive", "3d", "contour"))
+	surface <- match.arg(surface, c("predict", "smooth"))
 
 	# take parameters from function parameters, or from model object
 	if (demo == FALSE) {
@@ -159,6 +162,11 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
 		if (is.null(zlab)) zlab <- fit$DV
 	}
 	
+	if (is.null(fit) & surface == "smooth") {
+		warning("Smoothing only works if a RSA object is provided! Reverting to surface = 'predict'")
+		surface <- "predict"
+	}
+	
 	C <- c(x, y, x2, y2, xy, w, wx, wy)
 	
 	if (!model %in% c("absunc", "absdiff")) {
@@ -180,7 +188,18 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
 	new2 <- add.variables(z~x+y, new)
 		
 	# calculate z values
-	new2$z <- b0 + colSums(C*t(new2[, c(1:5, 9:11)]))
+	if (surface == "predict") {
+		new2$z <- b0 + colSums(C*t(new2[, c(1:5, 9:11)]))
+	}
+	if (surface == "smooth") {
+		rawdat <- fit$data[, c(fit$IV1, fit$IV2, fit$DV)]
+		colnames(rawdat) <- c("x", "y", "z")
+		
+		library(fields)
+		tpsfit <- Tps(fit$data[, c(fit$IV1, fit$IV2)], fit$data[, fit$DV], scale.type="unscaled", lambda=lambda)
+		#predict the thin plate spline on the fine grid and plot the fitting
+		new2$z <- predict(tpsfit, new[, c("x", "y")])
+	}
 	
 	# impose link functions
 	logit <- function (x) {log(x/(1-x))}
@@ -217,6 +236,7 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
 	}
 	if (length(pal) < 2) {legend <- FALSE}
 		
+	
 		
 	## ======================================================================
 	## Interactive plot

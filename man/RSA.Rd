@@ -1,13 +1,11 @@
-\docType{package}
 \name{RSA}
 \alias{RSA}
-\alias{RSA-package}
 \title{Performs several RSA model tests on a data set with two predictors}
 \usage{
   RSA(formula, data = NULL, sample.cor = NULL,
     sample.nobs = NULL, center = FALSE, scale = FALSE,
     na.rm = FALSE, out.rm = TRUE, breakline = FALSE,
-    models = "default", verbose = TRUE, ...)
+    models = "default", cubic = FALSE, verbose = TRUE, ...)
 }
 \arguments{
   \item{formula}{A formula in the form \code{z ~ x*y},
@@ -50,19 +48,25 @@
   computed, for \code{models="default"} all models but
   absolute difference models are computed.}
 
+  \item{cubic}{Should a cubic model with the additional
+  terms Y^3, XY^2, YX^2, and X^3 be included?}
+
   \item{...}{Additional parameters passed to the lavaan sem
   function. For example: \code{se="boot"}}
 }
 \description{
   Performs several RSA model tests on a data set with two
   predictors
-
-  Main functions are: \code{\link{RSA}},
-  \code{\link{demoRSA}}, \code{\link{plotRSA}},
-  \code{\link{RSA.ST}}, \code{\link{compare}}.
 }
 \details{
-  No details so far.
+  You can also fit binary outcome variables with a probit
+  link function. For that purpose, the response variable
+  has to be defined as "ordered": \code{r1 <- RSA(Z.binary
+  ~ X*Y, dat, ordered="Z.binary")} (for more details see
+  the help file of the /code{sem} function in the
+  \code{lavaan} package.). The results can also be plotted
+  with probabilities on the z axis: \code{plot(r1,
+  link="probit", zlim=c(0, 1), zlab="Probability")}.
 }
 \examples{
 # Compute response surface from a fake data set
@@ -95,9 +99,14 @@ RSA.ST(r1)	# get surface parameters
 # Motive congruency example
 data(motcon)
 r.m <- RSA(negAct~EM*IM, motcon)
-}
-\references{
-  ...
+
+# Get a parameter list of 5000 bootstrap samples, only from the SSD model
+b1 <- bootRSA(r.m, model="SSD", R=10)
+# Get a table of percentile confidence intervals and p-values from these bootstrap replications
+CI.boot(b1)
+
+# Plot the final model
+plot(r.m, model="SSD", xlab="Explicit intimacy motive", ylab="Implicit affiliation motive", zlab="Negative activation")
 }
 \seealso{
   \code{\link{demoRSA}}, \code{\link{plotRSA}},

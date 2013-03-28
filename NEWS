@@ -1,4 +1,25 @@
 # ---------------------------------------------------------------------
+# version 0.6.1
+
+Removed German umlauts for proper compiling
+
+# ---------------------------------------------------------------------
+# version 0.6
+
+New features
+
+- Added parameter "cubic" to RSA function. If set to TRUE, also a cubic surface is fitted, adding four new parameters to the equation: X^3, Y^3, XY^2, and X^2Y
+- Added parameter "project" to plotRSA. If project=TRUE, all lines which are defines by parameter "axes" are projected onto the floor of the cube.
+- plotRSA now can plot a convex hull around the data points (set hull=TRUE); both in type="3d" and type="contour"
+- plotRSA now can plot the CI of the stationary point (set SP.CI=TRUE); only for type="contour"
+- All surface parameters now are also calculated for IA and sqdiff models
+
+Changes:
+- Changed parameter name "showBorder" to "border"
+- Changed parameter name "showContour" to "contour"
+
+
+# ---------------------------------------------------------------------
 # version 0.5.1
 
 New features

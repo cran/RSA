@@ -3,9 +3,10 @@
 \title{Plots a response surface of a polynomial equation of second degree with interactive controls}
 \usage{
   demoRSA(x = NULL, y = 0, x2 = 0, y2 = 0, xy = 0, w = 0,
-    wx = 0, wy = 0, b0 = 0, type = "3d", zlim = c(-2, 2),
-    xlim = c(-2, 2), ylim = c(-2, 2), points = FALSE,
-    model = "full", extended = FALSE, ...)
+    wx = 0, wy = 0, x3 = 0, xy2 = 0, x2y = 0, y3 = 0,
+    b0 = 0, type = "3d", zlim = c(-2, 2), xlim = c(-2, 2),
+    ylim = c(-2, 2), points = FALSE, model = "full",
+    extended = FALSE, ...)
 }
 \arguments{
   \item{x}{Either an RSA object (returned by the \code{RSA}
@@ -18,6 +19,14 @@
   \item{y2}{Y^2 coefficient}
 
   \item{xy}{XY interaction coefficient}
+
+  \item{y3}{Y^3 coefficient}
+
+  \item{x3}{X^3 coefficient}
+
+  \item{xy2}{XY^2 coefficient}
+
+  \item{x2y}{X^2Y coefficient}
 
   \item{w}{W coefficient (for (un)constrained absolute
   difference model)}
@@ -63,8 +72,10 @@
 \examples{
 # Plot response surfaces from known parameters
 # example of Edwards (2002), Figure 3
+\dontrun{
 demoRSA(x=.314, y=-.118, x2=-.145, y2=-.102, xy=.299, b0=5.628, type="3d")
 demoRSA(x=.314, y=-.118, x2=-.145, y2=-.102, xy=.299, b0=5.628, legend=FALSE, type="c")
+}
 
 # Plot response surface from an RSA object
 \dontrun{

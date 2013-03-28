@@ -29,7 +29,7 @@ compare <- function(x, verbose=TRUE) {
 			cat("-------------------------------------------------------------------------\n")
 		}
 	
-		aL1 <- anovaList(list(full=full, IA=IA, additive=additive, diff=diff))
+		aL1 <- anovaList(list(cubic=cubic, full=full, IA=IA, additive=additive, diff=diff))
 		if (aL1$n.mods > 1) {
 			if (verbose==TRUE) {
 				cat("Stepping down from full polynomial model: Interaction, additive main effects, difference model :\n")
@@ -54,7 +54,7 @@ compare <- function(x, verbose=TRUE) {
 			res <- a1
 		}
 	
-		aL2 <- anovaList(list(full=full, SRSD=SRSD, SSD=SSD, sqdiff=sqdiff))
+		aL2 <- anovaList(list(cubic=cubic, full=full, SRSD=SRSD, SSD=SSD, sqdiff=sqdiff))
 		if (aL2$n.mods > 1) {
 			if (verbose==TRUE) {
 				cat("\n\nTesting squared differences against full polynomial model:\n")

@@ -1,5 +1,4 @@
 \name{bootRSA}
-\alias{CI.boot}
 \alias{bootRSA}
 \title{Compute bootstrap replications for model parameteres}
 \usage{
@@ -12,7 +11,8 @@
   "full"}
 
   \item{...}{Additional parameters passed to the
-  bootstrapLavaan function}
+  bootstrapLavaan function, e.g., \code{R} for the number
+  of bootstrap replications (e.g., R=1000).}
 }
 \description{
   Compute bootstrap replications for model parameteres

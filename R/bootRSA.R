@@ -1,5 +1,5 @@
 #' @title Compute bootstrap replications for model parameteres
-#' @aliases CI.boot 
+#' @aliases bootRSA
 #' @description
 #' Compute bootstrap replications for model parameteres
 #'
@@ -9,7 +9,7 @@
 #' @export
 #' @param x RSA object
 #' @param model A string specifying the model; defaults to "full"
-#' @param ... Additional parameters passed to the bootstrapLavaan function
+#' @param ... Additional parameters passed to the bootstrapLavaan function, e.g., \code{R} for the number of bootstrap replications (e.g., R=1000).
 #'
 #' @seealso \code{\link{RSA}}
 #'
@@ -36,18 +36,4 @@
 
 bootRSA <- function(x, model="full", ...) {
 	data.frame(bootstrapLavaan(x$models[[model]], FUN=function(x) return(coef(x, type="all")), ...))
-}
-
-
-#' @export
-CI.boot <- function(r.boot) {
-	CIs <- apply(r.boot, 2, function(x) {
-		p <- sum(x<0)/length(x)
-		qu <- quantile(x, probs=c(.025, .975))
-		res <- c(qu, p.value=min(p, 1-p)*2)	# *2 to make p-values two-sided
-		return(res)
-	})
-	
-	CIs <- t(CIs)
-	return(CIs)
 }

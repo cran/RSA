@@ -100,7 +100,7 @@ RSA.ST(r1)
   Response Surface Analysis: A Powerful Approach for
   Examining Moderation and Overcoming Limitations of
   Difference Scores. \emph{Journal of Business and
-  Psychology, 25}, 543–554. doi:10.1007/s10869-010-9183-4
+  Psychology, 25}, 543-554. doi:10.1007/s10869-010-9183-4
 }
 \seealso{
   \code{\link{RSA}}

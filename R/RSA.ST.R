@@ -29,7 +29,7 @@
 #' PA2.curvature: quadratic component of the second PA (equivalent to the second eigenvalue)
 #'
 #' @references
-#' Shanock, L. R., Baran, B. E., Gentry, W. A., Pattison, S. C., & Heggestad, E. D. (2010). Polynomial Regression with Response Surface Analysis: A Powerful Approach for Examining Moderation and Overcoming Limitations of Difference Scores. \emph{Journal of Business and Psychology, 25}, 543–554. doi:10.1007/s10869-010-9183-4
+#' Shanock, L. R., Baran, B. E., Gentry, W. A., Pattison, S. C., & Heggestad, E. D. (2010). Polynomial Regression with Response Surface Analysis: A Powerful Approach for Examining Moderation and Overcoming Limitations of Difference Scores. \emph{Journal of Business and Psychology, 25}, 543-554. doi:10.1007/s10869-010-9183-4
 #'
 #' @seealso \code{\link{RSA}}
 #'

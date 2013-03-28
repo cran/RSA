@@ -1,24 +1,17 @@
 # helpers.R
 
-AICc.lavaan <- function(object, second.ord=TRUE, c.hat = 1, return.K = FALSE){
-	object <- as.list(fitMeasures(object))
-  npar<-object$baseline.df - object$df
-	if(return.K==T) return(object$npar)
-	if(second.ord==F && c.hat>1) return(-2*object$logl/c.hat+2*npar)
-	if(second.ord==F) return(object$aic)
-    if(c.hat>1) return( -2*object$logl/c.hat+2*npar + 2*( npar*(object$npar+1))/(object$ntotal-npar-1))
-    object$aic + 2*( npar*(npar+1))/(object$ntotal-npar-1)
-}
-
-
-
 add.variables <- function(formula, df) {
 	IV1 <- all.vars(formula)[2]
 	IV2 <- all.vars(formula)[3]
 	
 	IV12 <- paste0(IV1, "2")
 	IV22 <- paste0(IV2, "2")
+	IV13 <- paste0(IV1, "3")
+	IV23 <- paste0(IV2, "3")
 	IV_IA <- paste0(IV1, "_", IV2)
+	IV_IA2 <- paste0(IV1, "_", IV2, "2")
+	IV_IA3 <- paste0(IV1, "2", "_", IV2)
+	
 	
 	df[, IV12] <- df[, IV1]^2
 	df[, IV22] <- df[, IV2]^2
@@ -29,7 +22,7 @@ add.variables <- function(formula, df) {
 	df[, paste0("W.JRE_", IV1)] <- df$W.JRE*df[, IV1]
 	df[, paste0("W.JRE_", IV2)] <- df$W.JRE*df[, IV2]
 	
-	# three new variables for piecewise regression (test absolute difference score) - new model Schönbrodt 2012
+	# three new variables for piecewise regression (test absolute difference score) - new model Schoenbrodt 2012
 	df$W <- ifelse(df[, IV1] >= df[, IV2], 1, -1)
 	df$W[df[, IV1] == df[, IV2]] <- 0
 	df[, paste0("W_", IV1)] <- df$W*df[, IV1]
@@ -38,6 +31,13 @@ add.variables <- function(formula, df) {
 	df$diff <- df[, IV2] - df[, IV1]
 	df$sqdiff <- df$diff^2
 	df$absdiff <- abs(df$diff)
+	
+	# cubic terms
+	df[, IV13] <- df[, IV1]^3
+	df[, IV_IA2] <- df[, IV1]*df[, IV2]^2
+	df[, IV_IA3] <- df[, IV1]^2*df[, IV2]
+	df[, IV23] <- df[, IV2]^3
+	
 	return(df)
 }
 
@@ -63,7 +63,7 @@ sig2star <- function(val) {
 getFreeParameters <- function(model) {
 	VARS <- nrow(inspect(model, "free")$beta)	# number of variables
 	df.max <- (VARS*(VARS+1))/2		# maximum df
-	df.pred <- ((VARS-1)*(VARS))/2	+1 # df bound in the predictors (i.e., (co)variances of the predictors & variance of DV)
+	df.pred <- ((VARS-1)*(VARS))/2 + 1 # df bound in the predictors (i.e., (co)variances of the predictors & variance of DV)
 	free.max <- df.max - df.pred	# maximum of free parameters
 	return(free.max)
 }

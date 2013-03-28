@@ -49,7 +49,7 @@ print.RSA <- function(x, ...) {
 	cat(paste0("a2: Is there curvature on the line of congruence? ", ifelse(ST$SP$p.value[2] <= .05, 
 	"YES", "NO"), "\n"))
 
-	cat(paste0("a4: Is there an general effect of incongruence? ", ifelse(ST$SP$p.value[4] <= .05, "YES", "NO"), "\n"))
+	cat(paste0("a4: Is there a general effect of incongruence? ", ifelse(ST$SP$p.value[4] <= .05, "YES", "NO"), "\n"))
 
 	cat(paste0("a3: Is there an asymmetry in incongruence? ", ifelse(ST$SP$p.value[3] <= .05, "YES", "NO"), "\n\n"))	
 	

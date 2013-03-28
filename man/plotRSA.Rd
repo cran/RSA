@@ -3,18 +3,19 @@
 \title{Plots a response surface of a polynomial equation of second degree}
 \usage{
   plotRSA(x = NULL, y = 0, x2 = 0, y2 = 0, xy = 0, w = 0,
-    wx = 0, wy = 0, b0 = 0, xlim = NULL, ylim = NULL,
-    zlim = NULL, xlab = NULL, ylab = NULL, zlab = NULL,
+    wx = 0, wy = 0, x3 = 0, xy2 = 0, x2y = 0, y3 = 0,
+    b0 = 0, xlim = NULL, ylim = NULL, zlim = NULL,
+    xlab = NULL, ylab = NULL, zlab = NULL,
     surface = "predict", lambda = NULL,
     rot = list(x = -45, y = 45, z = 35),
     label.rot = list(x = 45, y = -25, z = 94),
     gridsize = 21, bw = FALSE, legend = TRUE,
     showSP = TRUE, axes = c("LOC", "LOIC", "PA1", "PA2"),
-    cex = 1.2, type = "3d", points = FALSE, model = "full",
-    demo = FALSE, fit = NULL, link = "identity",
-    distance = c(1, 1, 1), tck = c(1, 1, 1),
-    showBorder = TRUE, showContour = FALSE, pal = NULL,
-    ...)
+    project = FALSE, cex = 1.2, type = "3d",
+    points = FALSE, model = "full", demo = FALSE,
+    fit = NULL, link = "identity", distance = c(1, 1, 1),
+    tck = c(1, 1, 1), border = TRUE, contour = FALSE,
+    hull = FALSE, SP.CI = TRUE, pal = NULL, ...)
 }
 \arguments{
   \item{x}{Either an RSA object (returned by the \code{RSA}
@@ -36,6 +37,14 @@
 
   \item{wy}{WY coefficient (for (un)constrained absolute
   difference model)}
+
+  \item{y3}{Y^3 coefficient}
+
+  \item{x3}{X^3 coefficient}
+
+  \item{xy2}{XY^2 coefficient}
+
+  \item{x2y}{X^2Y coefficient}
 
   \item{b0}{Intercept}
 
@@ -105,19 +114,28 @@
   line of incongruence, PA1 = first principal axis, PA2 =
   second principal axis}
 
+  \item{project}{Should the LOC, LOIC, etc. (as defined in
+  parameter \code{axes}) be also plotted as a projection on
+  the bottom of the cube?}
+
   \item{link}{Link function to transform the z axes.
   Implemented are "identity" (no transformation; default),
   "probit", and "logit"}
 
-  \item{showBorder}{Should a thicker border around the
-  surface be plotted? Sometimes this border leaves the
-  surrounding box, which does not look good. In this case
-  the border can be suppressed by setting
-  \code{showBorder=FALSE}.}
+  \item{border}{Should a thicker border around the surface
+  be plotted? Sometimes this border leaves the surrounding
+  box, which does not look good. In this case the border
+  can be suppressed by setting \code{border=FALSE}.}
 
-  \item{showContour}{Should the contour lines be plotted on
-  the 3d wireframe plot? (Parameter only relevant for
-  type="3d")}
+  \item{contour}{Should the contour lines be plotted on the
+  3d wireframe plot? (Parameter only relevant for
+  \code{type="3d"})}
+
+  \item{hull}{Plot the convex hull enclosing the raw data
+  points}
+
+  \item{SP.CI}{Plot the CI of the stationary point (only
+  relevant for \code{type="contour"})}
 
   \item{distance}{A vector of three values defining the
   distance of labels to the axes}
@@ -127,7 +145,7 @@
 
   \item{pal}{A palette for shading}
 
-  \item{...}{Additional parameters apssed to the plotting
+  \item{...}{Additional parameters passed to the plotting
   function (e.g., main="Title"). A useful title might be
   the R squared of the plotted model: main =
   as.expression(bquote(R^2==.(round(getPar(x, "r2",

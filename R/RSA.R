@@ -4,7 +4,7 @@
 #' Performs several RSA model tests on a data set with two predictors
 #'
 #' @details
-#' No details so far.
+#' You can also fit binary outcome variables with a probit link function. For that purpose, the response variable has to be defined as "ordered": \code{r1 <- RSA(Z.binary ~ X*Y, dat, ordered="Z.binary")} (for more details see the help file of the /code{sem} function in the \code{lavaan} package.). The results can also be plotted with probabilities on the z axis: \code{plot(r1, link="probit", zlim=c(0, 1), zlab="Probability")}.
 #'
 #' @export
 #' @param formula A formula in the form \code{z ~ x*y}, specifying the variable names used from the data frame, where z is the name of the response variable, and x and y are the names of the predictor variables.
@@ -18,6 +18,7 @@
 #' @param breakline Should the breakline in the unconstrained absolute difference model be allowed (the breakline is possible from the model formulation, but empirically rather unrealistic ...)
 #' @param verbose Should additional information during the computation process be printed?
 #' @param models A vector with names of all models that should be computed. Should be any from c("absdiff", "absunc", "diff", "additive", "IA", "sqdiff", "SSD", "SRSD", "full"). For \code{models="all"}, all models are computed, for \code{models="default"} all models but absolute difference models are computed.
+#' @param cubic Should a cubic model with the additional terms Y^3, XY^2, YX^2, and X^3 be included?
 #' @param ... Additional parameters passed to the lavaan sem function. For example: \code{se="boot"}
 #'
 #'
@@ -54,11 +55,19 @@
 #' # Motive congruency example
 #' data(motcon)
 #' r.m <- RSA(negAct~EM*IM, motcon)
+#'
+#' # Get a parameter list of 5000 bootstrap samples, only from the SSD model
+#' b1 <- bootRSA(r.m, model="SSD", R=10)
+#' # Get a table of percentile confidence intervals and p-values from these bootstrap replications
+#' CI.boot(b1)
+#' 
+#' # Plot the final model
+#' plot(r.m, model="SSD", xlab="Explicit intimacy motive", ylab="Implicit affiliation motive", zlab="Negative activation")
 
 
 # formula <- z.sq~x*y; data <- df; center=FALSE; scale=FALSE; out.rm=TRUE; breakline=FALSE; verbose=TRUE
 
-RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FALSE, scale=FALSE, na.rm=FALSE, out.rm=TRUE, breakline=FALSE, models="default", verbose=TRUE, ...) {
+RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FALSE, scale=FALSE, na.rm=FALSE, out.rm=TRUE, breakline=FALSE, models="default", cubic=FALSE, verbose=TRUE, ...) {
 
 	if (length(models)==1 & models[1]=="all") {models <- c("absdiff", "absunc", "diff", "additive", "IA", "sqdiff", "SSD", "SRSD", "full")}
 	if (length(models)==1 & models[1]=="default") {models <- c("diff", "additive", "IA", "sqdiff", "SSD", "SRSD", "full")}
@@ -68,15 +77,10 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 	
 	if (is.null(data) & is.null(sample.cor) & is.null(sample.nobs)) stop("Please provide either a data frame or a correlation matrix!")
 		
-	if (!is.null(data)) {
-		mode <- "data"
-	} else {
-		mode <- "cor"
-		if (any (is.null(c(sample.cor, sample.nobs)))) stop("You have to provide both sample.cor and sample.nobs")
-	}
+	mode <- "data"
 	
 	# set all result objects to NULL as default
-	s.full <- s.IA <- s.diff <- s.absdiff <- s.additive <- s.sqdiff <- s.sq.shift <- s.sq.rot <- s.absunc <- NULL
+	s.full <- s.IA <- s.diff <- s.absdiff <- s.additive <- s.sqdiff <- s.sq.shift <- s.sq.rot <- s.absunc <- s.cubic <- NULL
 	sq.shape <- ""
 	
 	DV <- all.vars(formula)[1]
@@ -98,7 +102,11 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 	
 	IV12 <- paste0(IV1, "2")
 	IV22 <- paste0(IV2, "2")
+	IV13 <- paste0(IV1, "3")
+	IV23 <- paste0(IV2, "3")
 	IV_IA <- paste0(IV1, "_", IV2)
+	IV_IA2 <- paste0(IV1, "_", IV2, "2")
+	IV_IA3 <- paste0(IV1, "2", "_", IV2)
 	W_IV1 <- paste0("W_", IV1)
 	W_IV2 <- paste0("W_", IV2)
 
@@ -145,6 +153,23 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 			"a2 := b3+b4+b5",
 			"a3 := b1-b2",
 			"a4 := b3-b4+b5",
+			"X0 := (b2*b4 - 2*b1*b5) / (4*b3*b5 - b4^2)",
+			"Y0 := (b1*b4 - 2*b2*b3) / (4*b3*b5 - b4^2)",
+			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
+			"p10 := Y0 - p11*X0",
+			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
+			"p20 := Y0 - p21*X0",
+			"as1X := b1 + p11*b2 + b4*p10 + 2*b5*p10*p11",
+			"as2X := b3 + b4*p11 + (p11^2)*b5",
+			"as1Y := b1/p11 + b2 - (2*b3*p10)/p11^2 - (b4*p10)/p11",
+			"as2Y := b3/p11^2 + b4/p11 + b5",
+			"as3X := b1 + p21*b2 + b4*p20 + 2*b5*p20*p21",
+			"as4X := b3 + b4*p21 + (p21^2)*b5",
+			"as3Y := b1/p21 + b2 - (2*b3*p20)/p21^2 - (b4*p20)/p21",
+			"as4Y := b3/p21^2 + b4/p21 + b5",
+			# eigenvalues
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 		sep="\n")
 		if (mode=="data") {
 			s.additive <- sem(m.additive, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
@@ -165,6 +190,23 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 			"a2 := b3+b4+b5",
 			"a3 := b1-b2",
 			"a4 := b3-b4+b5",
+			"X0 := (b2*b4 - 2*b1*b5) / (4*b3*b5 - b4^2)",
+			"Y0 := (b1*b4 - 2*b2*b3) / (4*b3*b5 - b4^2)",
+			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
+			"p10 := Y0 - p11*X0",
+			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
+			"p20 := Y0 - p21*X0",
+			"as1X := b1 + p11*b2 + b4*p10 + 2*b5*p10*p11",
+			"as2X := b3 + b4*p11 + (p11^2)*b5",
+			"as1Y := b1/p11 + b2 - (2*b3*p10)/p11^2 - (b4*p10)/p11",
+			"as2Y := b3/p11^2 + b4/p11 + b5",
+			"as3X := b1 + p21*b2 + b4*p20 + 2*b5*p20*p21",
+			"as4X := b3 + b4*p21 + (p21^2)*b5",
+			"as3Y := b1/p21 + b2 - (2*b3*p20)/p21^2 - (b4*p20)/p21",
+			"as4Y := b3/p21^2 + b4/p21 + b5",
+			# eigenvalues
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			sep="\n")
 			if (mode=="data") {
 				s.diff <- sem(m.diff, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
@@ -184,6 +226,23 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 			"a2 := b3+b4+b5",
 			"a3 := b1-b2",
 			"a4 := b3-b4+b5",
+			"X0 := (b2*b4 - 2*b1*b5) / (4*b3*b5 - b4^2)",
+			"Y0 := (b1*b4 - 2*b2*b3) / (4*b3*b5 - b4^2)",
+			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
+			"p10 := Y0 - p11*X0",
+			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
+			"p20 := Y0 - p21*X0",
+			"as1X := b1 + p11*b2 + b4*p10 + 2*b5*p10*p11",
+			"as2X := b3 + b4*p11 + (p11^2)*b5",
+			"as1Y := b1/p11 + b2 - (2*b3*p10)/p11^2 - (b4*p10)/p11",
+			"as2Y := b3/p11^2 + b4/p11 + b5",
+			"as3X := b1 + p21*b2 + b4*p20 + 2*b5*p20*p21",
+			"as4X := b3 + b4*p21 + (p21^2)*b5",
+			"as3Y := b1/p21 + b2 - (2*b3*p20)/p21^2 - (b4*p20)/p21",
+			"as4Y := b3/p21^2 + b4/p21 + b5",
+			# eigenvalues
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 		sep="\n")
 		if (mode=="data") {
 			s.IA <- sem(m.IA, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
@@ -205,6 +264,23 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 			"a2 := b3+b4+b5",
 			"a3 := b1-b2",
 			"a4 := b3-b4+b5",
+			"X0 := (b2*b4 - 2*b1*b5) / (4*b3*b5 - b4^2)",
+			"Y0 := (b1*b4 - 2*b2*b3) / (4*b3*b5 - b4^2)",
+			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
+			"p10 := Y0 - p11*X0",
+			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
+			"p20 := Y0 - p21*X0",
+			"as1X := b1 + p11*b2 + b4*p10 + 2*b5*p10*p11",
+			"as2X := b3 + b4*p11 + (p11^2)*b5",
+			"as1Y := b1/p11 + b2 - (2*b3*p10)/p11^2 - (b4*p10)/p11",
+			"as2Y := b3/p11^2 + b4/p11 + b5",
+			"as3X := b1 + p21*b2 + b4*p20 + 2*b5*p20*p21",
+			"as4X := b3 + b4*p21 + (p21^2)*b5",
+			"as3Y := b1/p21 + b2 - (2*b3*p20)/p21^2 - (b4*p20)/p21",
+			"as4Y := b3/p21^2 + b4/p21 + b5",
+			# eigenvalues
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			sep="\n")			
 		if (mode=="data") {
 			s.sqdiff <- sem(m.sqdiff, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
@@ -334,6 +410,14 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 		#summary(s.full, fit.measures=TRUE)
 	}
 	
+	
+	if (cubic==TRUE) {
+		if (verbose==TRUE) print("Computing full cubic model ...")
+		m.cubic <-  paste0(poly, " + b9*", IV13, " + b10*", IV_IA2, " + b11*", IV_IA3, " + b12*", IV23)
+		print(m.cubic)
+		s.cubic <- sem(m.cubic, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)		
+	}
+	
 	#m.absdiff.JRE <-  paste(
 	#	paste0(DV, " ~ b1*", IV1, " + b2*", IV2, " + 0*", IV12, " + 0*", IV_IA, " + 0*", IV22, " + 0*W.JRE + b7*W.JRE_", IV1, " + b8*W.JRE_", IV2),
 	#	"b1 == -b2",
@@ -387,7 +471,7 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 	
 	
 	## Build results object
-	res <- list(models = list(full=s.full, IA=s.IA, diff=s.diff, absdiff=s.absdiff, additive=s.additive, sqdiff=s.sqdiff, SSD=s.sq.shift, SRSD=s.sq.rot, absunc=s.absunc), sq.shape = sq.shape, LM=rs, formula=formula, data=df, DV=DV, IV1=IV1, IV2=IV2, IV12=IV12, IV22=IV22, IV_IA=IV_IA, W_IV1=W_IV1, W_IV2=W_IV2, r.squared = summary(rs)$r.squared)
+	res <- list(models = list(full=s.full, IA=s.IA, diff=s.diff, absdiff=s.absdiff, additive=s.additive, sqdiff=s.sqdiff, SSD=s.sq.shift, SRSD=s.sq.rot, absunc=s.absunc, cubic=s.cubic), sq.shape = sq.shape, LM=rs, formula=formula, data=df, DV=DV, IV1=IV1, IV2=IV2, IV12=IV12, IV22=IV22, IV_IA=IV_IA, W_IV1=W_IV1, W_IV2=W_IV2, IV13=IV13, IV23=IV23, IV_IA2=IV_IA2, IV_IA3=IV_IA3, r.squared = summary(rs)$r.squared)
 	
 	attr(res, "class") <- "RSA"
 	return(res)

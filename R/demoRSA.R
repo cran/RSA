@@ -12,6 +12,10 @@
 #' @param x2 X^2 coefficient
 #' @param y2 Y^2 coefficient
 #' @param xy XY interaction coefficient
+#' @param y3 Y^3 coefficient
+#' @param x3 X^3 coefficient
+#' @param xy2 XY^2 coefficient
+#' @param x2y X^2Y coefficient
 #' @param w W coefficient (for (un)constrained absolute difference model)
 #' @param wx WX coefficient (for (un)constrained absolute difference model)
 #' @param wy WY coefficient (for (un)constrained absolute difference model)
@@ -31,8 +35,10 @@
 #' @examples
 #' # Plot response surfaces from known parameters
 #' # example of Edwards (2002), Figure 3
+#' \dontrun{
 #' demoRSA(x=.314, y=-.118, x2=-.145, y2=-.102, xy=.299, b0=5.628, type="3d")
 #' demoRSA(x=.314, y=-.118, x2=-.145, y2=-.102, xy=.299, b0=5.628, legend=FALSE, type="c")
+#' }
 #'
 #' # Plot response surface from an RSA object
 #' \dontrun{
@@ -58,7 +64,7 @@
 #' demoRSA(r1, points=TRUE, model="sqdiff")
 #' }
 
-demoRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, type="3d", zlim=c(-2, 2), xlim=c(-2, 2), ylim=c(-2, 2), points=FALSE, model="full", extended=FALSE, ...) {
+demoRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2y=0, y3=0, b0=0, type="3d", zlim=c(-2, 2), xlim=c(-2, 2), ylim=c(-2, 2), points=FALSE, model="full", extended=FALSE, ...) {
 
 	type <- match.arg(type, c("interactive", "3d", "contour"))
 	type2 <- type
@@ -83,6 +89,11 @@ demoRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, type="
 			w.0 <- w <- as.numeric(ifelse(is.na(C["b6"]), w, C["b6"]))
 			wx.0 <- wx <- as.numeric(ifelse(is.na(C["b7"]), wx, C["b7"]))
 			wy.0 <- wy <- as.numeric(ifelse(is.na(C["b8"]), wy, C["b8"]))
+			
+			x3.0 <- x3 <- as.numeric(ifelse(is.na(C["b9"]), x3, C["b9"]))
+			xy2.0 <- xy2 <- as.numeric(ifelse(is.na(C["b10"]), xy2, C["b10"]))
+			x2y.0 <- x2y <- as.numeric(ifelse(is.na(C["b11"]), x2y, C["b11"]))
+			y3.0 <- y3 <- as.numeric(ifelse(is.na(C["b12"]), y3, C["b12"]))
 		
 			xlim <- c(min(fit$data[, fit$IV1], na.rm=TRUE), max(fit$data[, fit$IV1], na.rm=TRUE))
 			ylim <- c(min(fit$data[, fit$IV2], na.rm=TRUE), max(fit$data[, fit$IV2], na.rm=TRUE))
@@ -248,7 +259,7 @@ demoRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, type="
 		ry <- as.numeric(tclvalue(RY))
 		rz <- as.numeric(tclvalue(RZ))
 		
-		plot(plotRSA(x, y, x2, y2, xy, w, wx, wy, b0, rot=list(x=rx, y=ry, z=rz), zlim=zlim, xlim=xlim, ylim=ylim, points=points, demo=TRUE, type=type2, fit=fit, ...))
+		plot(plotRSA(x=x, y=y, x2=x2, y2=y2, xy=xy, w=w, wx=wx, wy=wy, b0=b0, rot=list(x=rx, y=ry, z=rz), zlim=zlim, xlim=xlim, ylim=ylim, points=points, demo=TRUE, type=type2, fit=fit, ...))
     }
 
 	# define framework

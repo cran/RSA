@@ -22,6 +22,10 @@
 #' @param w W coefficient (for (un)constrained absolute difference model)
 #' @param wx WX coefficient (for (un)constrained absolute difference model)
 #' @param wy WY coefficient (for (un)constrained absolute difference model)
+#' @param y3 Y^3 coefficient
+#' @param x3 X^3 coefficient
+#' @param xy2 XY^2 coefficient
+#' @param x2y X^2Y coefficient
 #' @param b0 Intercept
 #' @param xlim Limits of the x axis
 #' @param ylim Limits of the y axis
@@ -44,13 +48,16 @@
 #' @param fit Do not change that parameter (internal use only)
 #' @param showSP Should the surface parameters a1 to a4 be shown on the plot? In case of a 3d plot a1 to a4 are printed on the upper left side; in case of a contour plot the principal axes are plotted.
 #' @param axes A vector of strings specifying the axes that should be plotted. Can be any combination of c("LOC", "LOIC", "PA1", "PA2"). LOC = line of congruence, LOIC = line of incongruence, PA1 = first principal axis, PA2 = second principal axis
+#' @param project Should the LOC, LOIC, etc. (as defined in parameter \code{axes}) be also plotted as a projection on the bottom of the cube?
 #' @param link Link function to transform the z axes. Implemented are "identity" (no transformation; default), "probit", and "logit"
-#' @param showBorder Should a thicker border around the surface be plotted? Sometimes this border leaves the surrounding box, which does not look good. In this case the border can be suppressed by setting \code{showBorder=FALSE}.
-#' @param showContour Should the contour lines be plotted on the 3d wireframe plot? (Parameter only relevant for type="3d")
+#' @param border Should a thicker border around the surface be plotted? Sometimes this border leaves the surrounding box, which does not look good. In this case the border can be suppressed by setting \code{border=FALSE}.
+#' @param contour Should the contour lines be plotted on the 3d wireframe plot? (Parameter only relevant for \code{type="3d"})
+#' @param hull Plot the convex hull enclosing the raw data points
+#' @param SP.CI Plot the CI of the stationary point (only relevant for \code{type="contour"})
 #' @param distance A vector of three values defining the distance of labels to the axes
 #' @param tck A vector of three values defining the position of labels to the axes (see ?wireframe)
 #' @param pal A palette for shading
-#' @param ... Additional parameters apssed to the plotting function (e.g., main="Title"). A useful title might be the R squared of the plotted model: main = as.expression(bquote(R^2==.(round(getPar(x, "r2", model="full"), 3))))
+#' @param ... Additional parameters passed to the plotting function (e.g., main="Title"). A useful title might be the R squared of the plotted model: main = as.expression(bquote(R^2==.(round(getPar(x, "r2", model="full"), 3))))
 #'
 #' @seealso \code{\link{demoRSA}}, \code{\link{RSA}}
 #'
@@ -86,9 +93,9 @@
 
 #b0=0; x=0; y=0; x2=0; y2=0; xy=0; w=0; wx=0; wy=0;  zlim=NULL; xlim=c(-2, 2); ylim=c(-2, 2); rot=list(x=-45, y=45, z=35); legend=TRUE; cex=1.2; type="3d"; points=TRUE; demo=FALSE; model="full"; 
 
-#b0=-9; x=0; y=0; x2=0; y2=0; xy=0; w=0; wx=1; wy=-1;  zlim=NULL; xlim=c(-2, 2); ylim=c(-2, 2); rot=list(x=-45, y=45, z=35); legend=TRUE; cex=1.2; type="3d"; points=TRUE; demo=FALSE; model="full"; fit=NULL; link="identity"; showSP=TRUE; gridsize=21;bw=FALSE; pal=NULL; axes=c("LOC", "LOIC", "PA1", "PA2"); distance=c(1, 1, 1); tck=c(1, 1, 1); xlab="X"; ylab="Y"; zlab="Z"; showBorder=TRUE;
+#b0=-9; x=0; y=0; x2=0; y2=0; xy=0; w=0; wx=1; wy=-1;  zlim=NULL; xlim=c(-2, 2); ylim=c(-2, 2); rot=list(x=-45, y=45, z=35); legend=TRUE; cex=1.2; type="3d"; points=TRUE; demo=FALSE; model="full"; fit=NULL; link="identity"; showSP=TRUE; gridsize=21;bw=FALSE; pal=NULL; axes=c("LOC", "LOIC", "PA1", "PA2"); distance=c(1, 1, 1); tck=c(1, 1, 1); xlab="X"; ylab="Y"; zlab="Z"; border=TRUE;
 
-plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=NULL, ylim=NULL, zlim=NULL, xlab=NULL, ylab=NULL, zlab=NULL, surface="predict", lambda=NULL, rot=list(x=-45, y=45, z=35), label.rot=list(x=45, y=-25, z=94), gridsize=21, bw=FALSE, legend=TRUE, showSP=TRUE, axes=c("LOC", "LOIC", "PA1", "PA2"), cex=1.2, type="3d", points=FALSE, model="full", demo=FALSE, fit=NULL, link="identity", distance=c(1, 1, 1), tck=c(1, 1, 1), showBorder=TRUE, showContour=FALSE, pal=NULL, ...) {
+plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2y=0, y3=0, b0=0, xlim=NULL, ylim=NULL, zlim=NULL, xlab=NULL, ylab=NULL, zlab=NULL, surface="predict", lambda=NULL, rot=list(x=-45, y=45, z=35), label.rot=list(x=45, y=-25, z=94), gridsize=21, bw=FALSE, legend=TRUE, showSP=TRUE, axes=c("LOC", "LOIC", "PA1", "PA2"), project=FALSE,  cex=1.2, type="3d", points=FALSE, model="full", demo=FALSE, fit=NULL, link="identity", distance=c(1, 1, 1), tck=c(1, 1, 1), border=TRUE, contour=FALSE, hull=FALSE, SP.CI=TRUE, pal=NULL, ...) {
 	
 	if (!all.equal(xlim, ylim)) warning("Axes dimensions are not equal. The visual diagonal is *not* the line of congruence! Consider choosing the same values for xlim and ylim.")
 	
@@ -106,6 +113,8 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
 			
 			if (is.null(xlim)) {xlim <- c(-2.1, 2.1)}
 			if (is.null(ylim)) {ylim <- c(-2.1, 2.1)}
+			
+			hull <- FALSE
 		} else	if (!is.null(x) & !is.null(attr(x, "class"))) {
 			if (attr(x, "class") == "RSA" & demo==FALSE) {
 				fit <- x
@@ -124,6 +133,12 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
 				w <- as.numeric(ifelse(is.na(C["b6"]), w, C["b6"]))
 				wx <- as.numeric(ifelse(is.na(C["b7"]), wx, C["b7"]))
 				wy <- as.numeric(ifelse(is.na(C["b8"]), wy, C["b8"]))
+				
+				# cubic parameters
+				x3 <- as.numeric(ifelse(is.na(C["b9"]), x3, C["b9"]))
+				xy2 <- as.numeric(ifelse(is.na(C["b10"]), xy2, C["b10"]))
+				x2y <- as.numeric(ifelse(is.na(C["b11"]), x2y, C["b11"]))
+				y3 <- as.numeric(ifelse(is.na(C["b12"]), y3, C["b12"]))
 		
 				if (is.null(xlim)) {
 					xlim <- c(min(fit$data[, fit$IV1], na.rm=TRUE), max(fit$data[, fit$IV1], na.rm=TRUE))
@@ -147,6 +162,7 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
 			}
 		} else {
 			fit <- NULL
+			hull <- FALSE
 			if (is.null(xlab)) xlab <- "X"
 			if (is.null(ylab)) ylab <- "Y"
 			if (is.null(zlab)) zlab <- "Z"
@@ -167,14 +183,14 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
 		surface <- "predict"
 	}
 	
-	C <- c(x, y, x2, y2, xy, w, wx, wy)
+	C <- c(x, y, x2, y2, xy, w, wx, wy,x3, xy2, x2y, y3)
 	
 	if (!model %in% c("absunc", "absdiff")) {
-		if (!is.null(fit)) {
+		if (!is.null(fit) & model != "cubic") {
 			SP <- RSA.ST(fit, model=model)
-			} else {
-				SP <- RSA.ST(x=x, y=y, xy=xy, x2=x2, y2=y2)
-			}
+		} else {
+			SP <- RSA.ST(x=x, y=y, xy=xy, x2=x2, y2=y2)
+		}
 		SP.text <- paste0("a", 1:4, ": ", round(SP$SP$estimate, 2), sig2star(SP$SP$p.value), collapse="\n")
 	} else {
 		SP <- NULL
@@ -189,7 +205,7 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
 		
 	# calculate z values
 	if (surface == "predict") {
-		new2$z <- b0 + colSums(C*t(new2[, c(1:5, 9:11)]))
+		new2$z <- b0 + colSums(C*t(new2[, c(1:5, 9:11, 15:18)]))
 	}
 	if (surface == "smooth") {
 		rawdat <- fit$data[, c(fit$IV1, fit$IV2, fit$DV)]
@@ -219,6 +235,7 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
 	} else {
 		if (is.null(zlim)) zlim <- c(min(new2$z), max(new2$z))
 	}
+	zlim.final <- zlim
 	
 	## Plots
 	
@@ -227,15 +244,25 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
 		if (is.null(pal)) {
 			pal <- c("#A50026","#D73027","#F46D43","#FDAE61","#FEE08B","#FFFFBF","#D9EF8B","#A6D96A","#66BD63","#1A9850","#006837")
 		}
-		gridCol <- ifelse(showContour==TRUE, "grey60", "grey30")
+		gridCol <- ifelse(contour==TRUE, "grey60", "grey30")
 	} else {
 		if (is.null(pal)) {
 			pal <- colorRampPalette(c("#FFFFFF", "#888888", "#333333"), bias=0.8)(7)
 		}
-		gridCol <- ifelse(showContour==TRUE, "grey80", "grey30")
+		gridCol <- ifelse(contour==TRUE, "grey80", "grey30")
 	}
 	if (length(pal) < 2) {legend <- FALSE}
 		
+		
+	# calculate hull
+	if (hull==TRUE) {
+		h1 <- chull(data.frame(x=fit$data[, fit$IV1], y=fit$data[, fit$IV2]))
+		HULL <- data.frame(X=fit$data[h1, fit$IV1], Y=fit$data[h1, fit$IV2], Z0=fit$data[h1, fit$DV])
+		HULL <- rbind(HULL, HULL[1, ])
+		# calculate predicted values for hull points (so thge hull lies on the surface)
+		HULL3 <- add.variables(Z0~X+Y, HULL[, c("X", "Y")])
+		HULL3$Z <- b0 + colSums(C*t(HULL3[, c(1:5, 9:11, 15:18)]))
+	}
 	
 		
 	## ======================================================================
@@ -281,7 +308,34 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
 			mypanel2 <- function(x, y, z, xlim, ylim, zlim, xlim.scaled, ylim.scaled, zlim.scaled, axes, x.points=NULL, y.points=NULL, z.points=NULL, SPs="", ...) {
 				
 				
-					if (showBorder==TRUE) {
+			   # rescale absolute x, y, and z values so that they fit into the box
+			   RESCALE <- function(n) {
+				  X2 <- xlim.scaled[1] + diff(xlim.scaled) * (n$X - xlim[1]) / diff(xlim)
+	              Y2 <- ylim.scaled[1] + diff(ylim.scaled) * (n$Y - ylim[1]) / diff(ylim)
+	              Z2 <- zlim.scaled[1] + diff(zlim.scaled) * (n$Z - zlim[1]) / diff(zlim)
+				  df <- data.frame(X=X2, Y=Y2, Z=Z2)
+				  df <- df[df$X > min(xlim.scaled) & df$X < max(xlim.scaled) & df$Y > min(ylim.scaled) & df$Y < max(ylim.scaled) &  df$Z > min(zlim.scaled) & df$Z < max(zlim.scaled), ]
+				  return(df)
+			   }
+				
+			
+			# ---------------------------------------------------------------------
+			# 1. Projection on bottom of cube
+			  if (project==TRUE) {
+				  for (a in axes) {
+					  #print(paste("Plotting projection of", names(a)))
+					  a0 <- RESCALE(getIntersect2(p0=a$p0, p1=a$p1, Z=zlim.final[1] + .01))
+		              panel.3dscatter(x = a0$X, y = a0$Y, z = a0$Z, xlim = xlim, ylim = ylim, zlim = zlim,
+		                              xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled, type="l", col.line=a$col, lty=a$lty, lwd=2, ...)
+				  } 
+			  }
+		  	
+				
+			   # ---------------------------------------------------------------------
+			   # 2. Borders, back part
+			   
+			   
+					if (border==TRUE) {
 						  # Make boundary of grid a bit thicker
 						  box1 <- new2[new2$y == max(new2$y), ]
 						  box2 <- new2[new2$y == min(new2$y), ]
@@ -293,40 +347,43 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
 			              y.box <- ylim.scaled[1] + diff(ylim.scaled) * (box$y - ylim[1]) / diff(ylim)
 			              z.box <- zlim.scaled[1] + diff(zlim.scaled) * (box$z - zlim[1]) / diff(zlim)
 						  
-						  # plot the back lines
+						  # plot the back lines of the border
 			              panel.3dscatter(x = x.box[box$side==1], y = y.box[box$side==1], z = z.box[box$side==1], xlim = xlim, ylim = ylim, zlim = zlim, xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled, type="l", col.line=gridCol, lwd=4, ...)
 						  panel.3dscatter(x = x.box[box$side==3], y = y.box[box$side==3], z = z.box[box$side==3], xlim = xlim, ylim = ylim, zlim = zlim, xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled, type="l", col.line=gridCol, lwd=4, ...)
 					  }
-						  
-					  	  # the surface
+				
+					  # ---------------------------------------------------------------------
+					  # 3. the surface
 						  panel.3dwire(x = x, y = y, z = z, xlim = xlim, ylim = ylim, zlim = zlim,
 		                           xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled,
 								   col=gridCol,  lwd=0.3, ...)
 								   
 								   
-					   # rescale absolute x, y, and z values so that they fit into the box
-					   RESCALE <- function(n) {
-						  X2 <- xlim.scaled[1] + diff(xlim.scaled) * (n$X - xlim[1]) / diff(xlim)
-			              Y2 <- ylim.scaled[1] + diff(ylim.scaled) * (n$Y - ylim[1]) / diff(ylim)
-			              Z2 <- zlim.scaled[1] + diff(zlim.scaled) * (n$Z - zlim[1]) / diff(zlim)
-						  df <- data.frame(X=X2, Y=Y2, Z=Z2)
-						  df <- df[df$X > min(xlim.scaled) & df$X < max(xlim.scaled) & df$Y > min(ylim.scaled) & df$Y < max(ylim.scaled) &  df$Z > min(zlim.scaled) & df$Z < max(zlim.scaled), ]
-						  return(df)
-					   }
-						  
-						 if (!is.null(SP)) {
-						 
-						  # plot of LOC and LOIC, and other axes
+					   
+					# ---------------------------------------------------------------------
+					# 4. plot of LOC and LOIC, and other axes
 						  for (a in axes) {
 							  a0 <- RESCALE(getIntersect2(p0=a$p0, p1=a$p1))
 				              panel.3dscatter(x = a0$X, y = a0$Y, z = a0$Z, xlim = xlim, ylim = ylim, zlim = zlim,
 				                              xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled,
 											  type="l", col.line=a$col, lty=a$lty, lwd=2, ...)
 						  }   
-					   }
 						  
+						  
+					# ---------------------------------------------------------------------
+					# 4b: The convex hull, if requested
+					
+					if (hull==TRUE) {
+					  hull.rescale <- RESCALE(HULL3)
+		              panel.3dscatter(x = hull.rescale$X, y = hull.rescale$Y, z = hull.rescale$Z, xlim = xlim, ylim = ylim, zlim = zlim,
+		                              xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled,
+									  type="l", col.line="grey20", lty="dashed", lwd=2, ...)
+					}	  
+
+					# ---------------------------------------------------------------------
+					# 5. Borders, front part	  
 									   
-					   if (showBorder==TRUE) {
+					   if (border==TRUE) {
  						  # plot the front boundary lines
  			              panel.3dscatter(x = x.box[box$side==2], y = y.box[box$side==2], z = z.box[box$side==2], xlim = xlim, ylim = ylim, zlim = zlim, xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled, type="l", col.line=gridCol, lwd=3, ...)
 						  panel.3dscatter(x = x.box[box$side==4], y = y.box[box$side==4], z = z.box[box$side==4], xlim = xlim, ylim = ylim, zlim = zlim, xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled, type="l", col.line=gridCol, lwd=3, ...)
@@ -336,7 +393,9 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
 							  grid.text(SPs, .1, .9, just="left")
 						  }  
 						  
-						  # rescale scatter points
+						  
+					# ---------------------------------------------------------------------
+					# 6. Raw data points scatter plot	  
 			              x2 <- xlim.scaled[1] + diff(xlim.scaled) * (x.points - xlim[1]) / diff(xlim)
 			              y2 <- ylim.scaled[1] + diff(ylim.scaled) * (y.points - ylim[1]) / diff(ylim)
 			              z2 <- zlim.scaled[1] + diff(zlim.scaled) * (z.points - zlim[1]) / diff(zlim)
@@ -346,8 +405,11 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
   										  pch="o", col="black", ...)
 				  		}
 						
-						# at the end: plot contour lines:
-						if (showContour == TRUE) {
+						
+						
+					# ---------------------------------------------------------------------
+					# 7. plot contour lines:
+						if (contour == TRUE) {
 							cs <- ggplot(new2, aes_string(x="x", y="y", fill="z", z="z")) + stat_contour(bins=ifelse(length(pal)>1, length(pal)+1, 8))
 							cLines <- ggplot_build(cs)
 						
@@ -366,25 +428,43 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
 
 
 				# local function: compute the surface line, defined by a line on the X-Y plane (p0 = intercept, p1=slope)
-				getIntersect2 <- function(p0, p1) {
+				getIntersect2 <- function(p0, p1, Z=NULL) {
 					X <- seq(min(xlim), max(xlim), length.out=grid*2)
 					Y <- p0 + p1*X
 					n <- data.frame(X, Y)
 					n2 <- add.variables(z~X+Y, n)
 					n2$Z <- b0 + colSums(c(x, y, x2, y2, xy)*t(n2[, c(1:5)]))
+					if (!is.null(Z)) n2$Z <- Z
 					return(n2[, c("X", "Y", "Z")])
 				}
 				
 				axesList <- list()
 				if ("LOC" %in% axes) {axesList[["LOC"]]  <- list(p0=0, p1=1, lty="solid", col="grey")}
 				if ("LOIC" %in% axes) {axesList[["LOIC"]] <- list(p0=0, p1=-1, lty="dotted", col="grey")}
-				if ("PA1" %in% axes) {axesList[["PA1"]] <- list(p0=SP$p10, p1=SP$p11, lty="solid", col="black")}
-				if ("PA2" %in% axes) {axesList[["PA2"]] <- list(p0=SP$p20, p1=SP$p21, lty="dotted", col="black")}
+				if ("PA1" %in% axes) {
+					if (x2 == y2) {
+						print("Adjusting x2 to print PA1")
+						SP2 <- RSA.ST(x=x, y=y, xy=xy, x2=x2 + .001, y2=y2)
+						axesList[["PA1"]] <- list(p0=SP2$p10, p1=SP2$p11, lty="solid", col="black")
+						} else {
+							axesList[["PA1"]] <- list(p0=SP$p10, p1=SP$p11, lty="solid", col="black")
+						}					
+				}
+				if ("PA2" %in% axes) {
+					if (x2 == y2) {
+						print("Adjusting x2 to print PA2")
+						SP2 <- RSA.ST(x=x, y=y, xy=xy, x2=x2 + .001, y2=y2)
+						axesList[["PA2"]] <- list(p0=SP2$p20, p1=SP2$p21, lty="dotted", col="black")
+					} else {
+						axesList[["PA2"]] <- list(p0=SP$p20, p1=SP$p21, lty="dotted", col="black")	
+					}
+				}
 									
 				
 			if (points==FALSE) {
-				p1 <- wireframe(z ~ x*y, new2,  drape=TRUE, scales = list(arrows = FALSE, cex=cex, col = "black", font = 1, tck=tck, distance=distance), xlab=list(cex=cex, label=xlab, rot=label.rot[["x"]]), ylab=list(cex=cex, label=ylab, rot=label.rot[["y"]]), zlab=list(cex=cex, label=zlab, rot=label.rot[["z"]]), zlim=zlim, screen=rot, colorkey=legend, cuts=length(pal)-1, col.regions=pal, SPs=SP.text, par.settings = list(axis.line = list(col = "transparent")), axes=axesList, panel.3d.wireframe = mypanel2, ...)
-				
+				pad <- -5	# pad controls them margin around the figure
+				p1 <- wireframe(z ~ x*y, new2,  drape=TRUE, scales = list(arrows = FALSE, cex=cex, col = "black", font = 1, tck=tck, distance=distance), xlab=list(cex=cex, label=xlab, rot=label.rot[["x"]]), ylab=list(cex=cex, label=ylab, rot=label.rot[["y"]]), zlab=list(cex=cex, label=zlab, rot=label.rot[["z"]]), zlim=zlim, screen=rot, colorkey=legend, cuts=length(pal)-1, col.regions=pal, SPs=SP.text, par.settings = list(axis.line = list(col = "transparent"), layout.heights = list(top.padding=pad, bottom.padding=pad), layout.widths=list(left.padding=pad, right.padding=pad)), axes=axesList, panel.3d.wireframe = mypanel2, ...)
+								
 				#p1
 			} else {
 				p1 <- wireframe(z ~ x*y, new2,  drape=TRUE, scales = list(arrows = FALSE, cex=cex, col = "black", font = 1, tck=tck, distance=distance), xlab=list(cex=cex, label=xlab, rot=label.rot[["x"]]), ylab=list(cex=cex, label=ylab, rot=label.rot[["y"]]), zlab=list(cex=cex, label=zlab, rot=label.rot[["z"]]), zlim=zlim, screen=rot, colorkey=legend, cuts=length(pal)-1, col.regions=pal, SPs=SP.text, par.settings = list(axis.line = list(col = "transparent")), axes=axesList, panel.3d.wireframe = mypanel2, x.points=fit$data[, fit$IV1], y.points=fit$data[, fit$IV2], z.points=fit$data[, fit$DV], ...)
@@ -411,23 +491,39 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, b0=0, xlim=N
 			p1 <- p1 + stat_contour(bins=40, alpha=.4)
 				
 			# (in)congruence lines
-			p1 <- p1 + geom_abline(aes(xintercept=0, slope=1), color="grey") + geom_abline(aes(xintercept=0, slope=-1), linetype="dotted", color="grey50")
-		
-			# principal axes
-			if (showSP == TRUE) {
-				if (!any(is.na(SP[c("p10", "p11")]))) {
-					p1 <- p1 + geom_abline(data=data.frame(SP[c("p10", "p11")]), aes_string(intercept="p10", slope="p11"))
-				}
-				if (!any(is.na(SP[c("p20", "p21")]))) {
-					p1 <- p1+ geom_abline(data=data.frame(SP[c("p20", "p21")]), aes_string(intercept="p20", slope="p21"), linetype="dotted")
-				}
-				if (!any(is.na(SP[c("X0", "Y0")]))) {
-					p1 <- p1 + annotate("point", x=SP$X0, y=SP$Y0, z=100)
-				}
+			if ("LOC" %in% axes) {
+				p1 <- p1 + geom_abline(aes(xintercept=0, slope=1), color="grey")
 			}
+			if ("LOIC" %in% axes) {
+				p1 <- p1 + geom_abline(aes(xintercept=0, slope=-1), linetype="dotted", color="grey50")
+			}
+			if (("PA1" %in% axes) & !any(is.na(SP[c("p10", "p11")]))) {
+				p1 <- p1 + geom_abline(data=data.frame(SP[c("p10", "p11")]), aes_string(intercept="p10", slope="p11"))
+			}
+			if (("PA2" %in% axes) & !any(is.na(SP[c("p20", "p21")]))) {
+				p1 <- p1+ geom_abline(data=data.frame(SP[c("p20", "p21")]), aes_string(intercept="p20", slope="p21"), linetype="dotted")
+			}
+		
+			if (showSP==TRUE & !any(is.na(SP[c("X0", "Y0")]))) {
+				p1 <- p1 + annotate("point", x=SP$X0, y=SP$Y0, z=max(new2$z))
+			}
+				
+				
 			if (points==TRUE & !is.null(fit)) {
 				p1 <- p1 + annotate("point", x=fit$data[, fit$IV1], y=fit$data[, fit$IV2], color="grey20", size=1.5)
 			}
+			
+			if (hull==TRUE & !is.null(fit)) {
+				p1 <- p1 + annotate("path", x=HULL$X, y=HULL$Y, linetype="dashed", color="grey10")
+			}
+			
+			# plot CI of SP
+			if (showSP==TRUE & SP.CI==TRUE & !is.null(fit)) {
+				PAR <- getPar(fit, "coef", model=model)
+				p1 <- p1 + annotate("errorbar", x=SP$X0, y=SP$Y0, ymin=PAR[PAR$label=="Y0", "ci.lower"], ymax=PAR[PAR$label=="Y0", "ci.upper"], z=max(new2$z), width=.3)
+				p1 <- p1 + annotate("errorbarh", x=SP$X0, y=SP$Y0, xmin=PAR[PAR$label=="X0", "ci.lower"], xmax=PAR[PAR$label=="X0", "ci.upper"], z=max(new2$z), height=.3)
+			}
+			
 		}
 	}
 	

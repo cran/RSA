@@ -29,13 +29,13 @@
 #' 	z.sq <- sqdiff + rnorm(n, 0, err)
 #' })
 #' 
-#' r1 <- RSA(z.sq~x*y, df)
+#' r1 <- RSA(z.sq~x*y, df, models=c("full", "SSD"))
 #' getPar(r1, "syntax")
 #' getPar(r1, "R2")
 #' getPar(r1, "coef")
 
 
-getPar <- function(x, type="syntax", model="full", ...) {
+getPar <- function(x, type="coef", model="full", ...) {
 	type <- tolower(type)
 	if (type=="syntax") {
 		return(x$models[[model]]@Options$model)
@@ -45,6 +45,15 @@ getPar <- function(x, type="syntax", model="full", ...) {
 	}
 	if (type %in% c("r2", "rsquared", "r.squared")) {
 		return(inspect(x$models[[model]], "R2", ...))
+	}
+	if (type %in% c("r2.adj", "rsquared.adj", "r.squared.adj")) {
+		freeparam <- getFreeParameters(x$models[[model]]) - fitmeasures(x$models[[model]], "Df")
+		r2.adj <- 1 - (1-inspect(x$models[[model]], "R2")) * ((nobs(x$models[[model]])-1)/(nobs(x$models[[model]]) - freeparam - 1))
+		names(r2.adj) <- "r2.adj"
+		return(r2.adj)
+	}
+	if (type %in% c("npar", "free")) {
+		return(fitmeasures(x$models[[model]], "npar"))
 	}
 	if (type %in% c("summary")) {
 		return(summary(x$models[[model]], ...))

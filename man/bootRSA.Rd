@@ -1,6 +1,6 @@
 \name{bootRSA}
 \alias{bootRSA}
-\title{Compute bootstrap replications for model parameteres}
+\title{Compute bootstrap replications for model parameters}
 \usage{
   bootRSA(x, model = "full", ...)
 }
@@ -15,12 +15,13 @@
   of bootstrap replications (e.g., R=1000).}
 }
 \description{
-  Compute bootstrap replications for model parameteres
+  Compute bootstrap replications for model parameters
 }
 \details{
   None so far.
 }
 \examples{
+\dontrun{
 set.seed(0xBEEF)
 n <- 300
 err <- 2
@@ -35,9 +36,10 @@ df <- within(df, {
 })
 
 r1 <- RSA(z.sq~x*y, df)
-\dontrun{
 b1 <- bootRSA(r1, model="SSD", R=5000, parallel="multicore", ncpus=2)
-r1.boot.CI <- CI.boot(b1)	# compute percentile confidence intervals and percentile p-value of the bootstrapped values
+
+# compute percentile confidence intervals and percentile p-value of the bootstrapped values
+r1.boot.CI <- CI.boot(b1)
 }
 }
 \seealso{

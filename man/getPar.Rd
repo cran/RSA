@@ -2,7 +2,7 @@
 \alias{getPar}
 \title{Retrieves several variables from an RSA object}
 \usage{
-  getPar(x, type = "syntax", model = "full", ...)
+  getPar(x, type = "coef", model = "full", ...)
 }
 \arguments{
   \item{x}{RSA object}
@@ -35,7 +35,7 @@ df <- within(df, {
 	z.sq <- sqdiff + rnorm(n, 0, err)
 })
 
-r1 <- RSA(z.sq~x*y, df)
+r1 <- RSA(z.sq~x*y, df, models=c("full", "SSD"))
 getPar(r1, "syntax")
 getPar(r1, "R2")
 getPar(r1, "coef")

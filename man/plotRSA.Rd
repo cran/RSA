@@ -7,15 +7,15 @@
     b0 = 0, xlim = NULL, ylim = NULL, zlim = NULL,
     xlab = NULL, ylab = NULL, zlab = NULL,
     surface = "predict", lambda = NULL,
-    rot = list(x = -45, y = 45, z = 35),
-    label.rot = list(x = 45, y = -25, z = 94),
-    gridsize = 21, bw = FALSE, legend = TRUE,
-    showSP = TRUE, axes = c("LOC", "LOIC", "PA1", "PA2"),
-    project = FALSE, cex = 1.2, type = "3d",
-    points = FALSE, model = "full", demo = FALSE,
-    fit = NULL, link = "identity", distance = c(1, 1, 1),
-    tck = c(1, 1, 1), border = TRUE, contour = FALSE,
-    hull = FALSE, SP.CI = TRUE, pal = NULL, ...)
+    rotation = list(x = -63, y = 32, z = 15),
+    label.rotation = list(x = 19, y = -40, z = 92),
+    gridsize = 21, bw = FALSE, legend = TRUE, param = TRUE,
+    axes = c("LOC", "LOIC", "PA1", "PA2"), project = FALSE,
+    cex = 1.2, type = "3d", points = FALSE, model = "full",
+    demo = FALSE, fit = NULL, link = "identity",
+    tck = c(1.5, 1.5, 1.5), distance = c(1.3, 1.3, 1.4),
+    border = TRUE, contour = FALSE, hull = FALSE,
+    SP.CI = FALSE, pal = NULL, ...)
 }
 \arguments{
   \item{x}{Either an RSA object (returned by the \code{RSA}
@@ -71,11 +71,11 @@
   function. Small lambdas around 1 lead to rugged surfaces,
   big lambdas to very smooth surfaces.}
 
-  \item{rot}{Rotation of the 3d surface plot (when type ==
-  "3d")}
+  \item{rotation}{Rotation of the 3d surface plot (when
+  type == "3d")}
 
-  \item{label.rot}{Rotation of the axis labls (when type ==
-  "3d")}
+  \item{label.rotation}{Rotation of the axis labls (when
+  type == "3d")}
 
   \item{gridsize}{Number of grid nodes in each dimension}
 
@@ -103,7 +103,7 @@
   \item{fit}{Do not change that parameter (internal use
   only)}
 
-  \item{showSP}{Should the surface parameters a1 to a4 be
+  \item{param}{Should the surface parameters a1 to a4 be
   shown on the plot? In case of a 3d plot a1 to a4 are
   printed on the upper left side; in case of a contour plot
   the principal axes are plotted.}
@@ -195,7 +195,7 @@ df <- within(df, {
 	z.complex <- 0.4*x + - 0.2*x*y + + 0.1*x^2 - 0.03*y^2 + rnorm(n, 0, err)
 })
 
-r1 <- RSA(z.sq~x*y, df)
+r1 <- RSA(z.sq~x*y, df, models=c("sqdiff", "full", "IA"))
 plot(r1)
 plot(r1, points=TRUE, model="sqdiff")
 }

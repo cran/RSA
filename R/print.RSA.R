@@ -13,9 +13,9 @@ print.RSA <- function(x, ...) {
 	
 	
 	cat("\nIs the overall model significant?\n----------------------------\n")
-	# Rather than examining the regression coefficients as would be done in a common regression analysis, if the R2 (variance in the outcome variable explained by the regression equation) is significantly different from zero (Edwards 2002), the results of the polynomial regression are evaluated with regard to four surface test values: a1, a2, a3, and a4.
 	# --> is R2 significant?
 	r2.model <- summary(LM)$r.squared
+	
 	F <- summary(LM)$fstatistic
 	p.model <- 1-pf(F[1], F[2], F[3])
 	cat(paste0("Test on model significance: R2 = ", round(r2.model, 3), " (p = ", round(p.model, 3), ")\n"))

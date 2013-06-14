@@ -35,8 +35,8 @@
 #' @param zlab Label for z axis
 #' @param surface Method for the calculation of the surface z values. "predict" takes the predicted values from the model, "smooth" uses a thin plate smoother (function \code{Tps} from the \code{fields} package) of the raw data
 #' @param lambda lambda parameter for the smoother. Default (NULL) means that it is estimated by the smoother function. Small lambdas around 1 lead to rugged surfaces, big lambdas to very smooth surfaces.
-#' @param rot Rotation of the 3d surface plot (when type == "3d")
-#' @param label.rot Rotation of the axis labls (when type == "3d")
+#' @param rotation Rotation of the 3d surface plot (when type == "3d")
+#' @param label.rotation Rotation of the axis labls (when type == "3d")
 #' @param gridsize Number of grid nodes in each dimension
 #' @param bw Print surface in black and white instead of colors?
 #' @param legend Print color legend for z values?
@@ -46,7 +46,7 @@
 #' @param model If x is an RSA object: from which model should the response surface be computed?
 #' @param demo Do not change that parameter (internal use only)
 #' @param fit Do not change that parameter (internal use only)
-#' @param showSP Should the surface parameters a1 to a4 be shown on the plot? In case of a 3d plot a1 to a4 are printed on the upper left side; in case of a contour plot the principal axes are plotted.
+#' @param param Should the surface parameters a1 to a4 be shown on the plot? In case of a 3d plot a1 to a4 are printed on the upper left side; in case of a contour plot the principal axes are plotted.
 #' @param axes A vector of strings specifying the axes that should be plotted. Can be any combination of c("LOC", "LOIC", "PA1", "PA2"). LOC = line of congruence, LOIC = line of incongruence, PA1 = first principal axis, PA2 = second principal axis
 #' @param project Should the LOC, LOIC, etc. (as defined in parameter \code{axes}) be also plotted as a projection on the bottom of the cube?
 #' @param link Link function to transform the z axes. Implemented are "identity" (no transformation; default), "probit", and "logit"
@@ -85,19 +85,23 @@
 #' 	z.complex <- 0.4*x + - 0.2*x*y + + 0.1*x^2 - 0.03*y^2 + rnorm(n, 0, err)
 #' })
 #' 
-#' r1 <- RSA(z.sq~x*y, df)
+#' r1 <- RSA(z.sq~x*y, df, models=c("sqdiff", "full", "IA"))
 #' plot(r1)
 #' plot(r1, points=TRUE, model="sqdiff")
 
 
 
-#b0=0; x=0; y=0; x2=0; y2=0; xy=0; w=0; wx=0; wy=0;  zlim=NULL; xlim=c(-2, 2); ylim=c(-2, 2); rot=list(x=-45, y=45, z=35); legend=TRUE; cex=1.2; type="3d"; points=TRUE; demo=FALSE; model="full"; 
+#b0=0; x=0; y=0; x2=0; y2=0; xy=0; w=0; wx=0; wy=0;  zlim=NULL; xlim=c(-2, 2); ylim=c(-2, 2); rotation=list(x=-45, y=45, z=35); legend=TRUE; cex=1.2; type="3d"; points=TRUE; demo=FALSE; model="full"; 
 
-#b0=-9; x=0; y=0; x2=0; y2=0; xy=0; w=0; wx=1; wy=-1;  zlim=NULL; xlim=c(-2, 2); ylim=c(-2, 2); rot=list(x=-45, y=45, z=35); legend=TRUE; cex=1.2; type="3d"; points=TRUE; demo=FALSE; model="full"; fit=NULL; link="identity"; showSP=TRUE; gridsize=21;bw=FALSE; pal=NULL; axes=c("LOC", "LOIC", "PA1", "PA2"); distance=c(1, 1, 1); tck=c(1, 1, 1); xlab="X"; ylab="Y"; zlab="Z"; border=TRUE;
+#b0=-9; x=0; y=0; x2=0; y2=0; xy=0; w=0; wx=1; wy=-1;  zlim=NULL; xlim=c(-2, 2); ylim=c(-2, 2); rotation=list(x=-45, y=45, z=35); legend=TRUE; cex=1.2; type="3d"; points=TRUE; demo=FALSE; model="full"; fit=NULL; link="identity"; param=TRUE; gridsize=21;bw=FALSE; pal=NULL; axes=c("LOC", "LOIC", "PA1", "PA2"); distance=c(1, 1, 1); tck=c(1, 1, 1); xlab="X"; ylab="Y"; zlab="Z"; border=TRUE;
 
-plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2y=0, y3=0, b0=0, xlim=NULL, ylim=NULL, zlim=NULL, xlab=NULL, ylab=NULL, zlab=NULL, surface="predict", lambda=NULL, rot=list(x=-45, y=45, z=35), label.rot=list(x=45, y=-25, z=94), gridsize=21, bw=FALSE, legend=TRUE, showSP=TRUE, axes=c("LOC", "LOIC", "PA1", "PA2"), project=FALSE,  cex=1.2, type="3d", points=FALSE, model="full", demo=FALSE, fit=NULL, link="identity", distance=c(1, 1, 1), tck=c(1, 1, 1), border=TRUE, contour=FALSE, hull=FALSE, SP.CI=TRUE, pal=NULL, ...) {
+## old rotation
+# rotation=list(x=-45, y=45, z=35), label.rotation=list(x=45, y=-25, z=94)
+# distance=c(1, 1, 1), tck=c(1, 1, 1)
+
+plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2y=0, y3=0, b0=0, xlim=NULL, ylim=NULL, zlim=NULL, xlab=NULL, ylab=NULL, zlab=NULL, surface="predict", lambda=NULL, rotation=list(x=-63, y=32, z=15), label.rotation=list(x=19, y=-40, z=92), gridsize=21, bw=FALSE, legend=TRUE, param=TRUE, axes=c("LOC", "LOIC", "PA1", "PA2"), project=FALSE,  cex=1.2, type="3d", points=FALSE, model="full", demo=FALSE, fit=NULL, link="identity", tck=c(1.5, 1.5, 1.5), distance=c(1.3, 1.3, 1.4), border=TRUE, contour=FALSE, hull=FALSE, SP.CI=FALSE, pal=NULL, ...) {
 	
-	if (!all.equal(xlim, ylim)) warning("Axes dimensions are not equal. The visual diagonal is *not* the line of congruence! Consider choosing the same values for xlim and ylim.")
+	if (!identical(xlim, ylim)) {warning("Axes dimensions are not equal. The visual diagonal is *not* the line of congruence! Consider choosing the same values for xlim and ylim.")}
 	
 	type <- match.arg(type, c("interactive", "3d", "contour"))
 	surface <- match.arg(surface, c("predict", "smooth"))
@@ -179,22 +183,22 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0,
 	}
 	
 	if (is.null(fit) & surface == "smooth") {
-		warning("Smoothing only works if a RSA object is provided! Reverting to surface = 'predict'")
+		warning("Smoothing only works if an RSA object is provided! Reverting to surface = 'predict'")
 		surface <- "predict"
 	}
 	
 	C <- c(x, y, x2, y2, xy, w, wx, wy,x3, xy2, x2y, y3)
 	
 	if (!model %in% c("absunc", "absdiff")) {
-		if (!is.null(fit) & model != "cubic") {
+		if (!is.null(fit) & model != "cubic" & model != "null") {
 			SP <- RSA.ST(fit, model=model)
 		} else {
 			SP <- RSA.ST(x=x, y=y, xy=xy, x2=x2, y2=y2)
 		}
-		SP.text <- paste0("a", 1:4, ": ", round(SP$SP$estimate, 2), sig2star(SP$SP$p.value), collapse="\n")
+		SP.text <- paste0("a", 1:4, ": ", round(SP$SP$estimate, 2), sig2star(SP$SP$p.value), collapse="    ")
 	} else {
 		SP <- NULL
-		showSP <- FALSE
+		param <- FALSE
 		SP.text <- ""
 	}
 		
@@ -208,12 +212,8 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0,
 		new2$z <- b0 + colSums(C*t(new2[, c(1:5, 9:11, 15:18)]))
 	}
 	if (surface == "smooth") {
-		rawdat <- fit$data[, c(fit$IV1, fit$IV2, fit$DV)]
-		colnames(rawdat) <- c("x", "y", "z")
-		
 		library(fields)
 		tpsfit <- Tps(fit$data[, c(fit$IV1, fit$IV2)], fit$data[, fit$DV], scale.type="unscaled", lambda=lambda)
-		#predict the thin plate spline on the fine grid and plot the fitting
 		new2$z <- predict(tpsfit, new[, c("x", "y")])
 	}
 	
@@ -389,8 +389,8 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0,
 						  panel.3dscatter(x = x.box[box$side==4], y = y.box[box$side==4], z = z.box[box$side==4], xlim = xlim, ylim = ylim, zlim = zlim, xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled, type="l", col.line=gridCol, lwd=3, ...)
 					   }
 										  
-						  if (showSP == TRUE) {
-							  grid.text(SPs, .1, .9, just="left")
+						  if (param == TRUE) {
+							  grid.text(SPs, .02, .95, just="left")
 						  }  
 						  
 						  
@@ -443,7 +443,7 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0,
 				if ("LOIC" %in% axes) {axesList[["LOIC"]] <- list(p0=0, p1=-1, lty="dotted", col="grey")}
 				if ("PA1" %in% axes) {
 					if (x2 == y2) {
-						print("Adjusting x2 to print PA1")
+						# print("Adjusting x2 to print PA1")
 						SP2 <- RSA.ST(x=x, y=y, xy=xy, x2=x2 + .001, y2=y2)
 						axesList[["PA1"]] <- list(p0=SP2$p10, p1=SP2$p11, lty="solid", col="black")
 						} else {
@@ -452,22 +452,49 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0,
 				}
 				if ("PA2" %in% axes) {
 					if (x2 == y2) {
-						print("Adjusting x2 to print PA2")
+						# print("Adjusting x2 to print PA2")
 						SP2 <- RSA.ST(x=x, y=y, xy=xy, x2=x2 + .001, y2=y2)
 						axesList[["PA2"]] <- list(p0=SP2$p20, p1=SP2$p21, lty="dotted", col="black")
 					} else {
 						axesList[["PA2"]] <- list(p0=SP$p20, p1=SP$p21, lty="dotted", col="black")	
 					}
-				}
-									
+				}			
+				
+				pad <- 0	# pad controls them margin around the figure
 				
 			if (points==FALSE) {
-				pad <- -5	# pad controls them margin around the figure
-				p1 <- wireframe(z ~ x*y, new2,  drape=TRUE, scales = list(arrows = FALSE, cex=cex, col = "black", font = 1, tck=tck, distance=distance), xlab=list(cex=cex, label=xlab, rot=label.rot[["x"]]), ylab=list(cex=cex, label=ylab, rot=label.rot[["y"]]), zlab=list(cex=cex, label=zlab, rot=label.rot[["z"]]), zlim=zlim, screen=rot, colorkey=legend, cuts=length(pal)-1, col.regions=pal, SPs=SP.text, par.settings = list(axis.line = list(col = "transparent"), layout.heights = list(top.padding=pad, bottom.padding=pad), layout.widths=list(left.padding=pad, right.padding=pad)), axes=axesList, panel.3d.wireframe = mypanel2, ...)
+				p1 <- wireframe(z ~ x*y, new2,  drape=TRUE, 
+					scales 	= list(arrows = FALSE, cex=cex, col = "black", font = 1, tck=tck, distance=distance), 
+					xlab	= list(cex=cex, label=xlab, rot=label.rotation[["x"]]), 
+					ylab	= list(cex=cex, label=ylab, rot=label.rotation[["y"]]), 
+					zlab	= list(cex=cex, label=zlab, rot=label.rotation[["z"]]), zlim=zlim, 
+					screen	= rotation, colorkey=legend, 
+					at		= seq(zlim[1], zlim[2], length.out=length(pal)-1), col.regions=pal, 
+					par.settings = list(
+						axis.line = list(col = "transparent"), 
+						layout.heights = list(top.padding=pad, bottom.padding=pad), 
+						layout.widths=list(left.padding=pad, right.padding=pad)), 
+					axes	= axesList, 
+					SPs		= SP.text, 
+					panel.3d.wireframe = mypanel2, ...)
 								
 				#p1
 			} else {
-				p1 <- wireframe(z ~ x*y, new2,  drape=TRUE, scales = list(arrows = FALSE, cex=cex, col = "black", font = 1, tck=tck, distance=distance), xlab=list(cex=cex, label=xlab, rot=label.rot[["x"]]), ylab=list(cex=cex, label=ylab, rot=label.rot[["y"]]), zlab=list(cex=cex, label=zlab, rot=label.rot[["z"]]), zlim=zlim, screen=rot, colorkey=legend, cuts=length(pal)-1, col.regions=pal, SPs=SP.text, par.settings = list(axis.line = list(col = "transparent")), axes=axesList, panel.3d.wireframe = mypanel2, x.points=fit$data[, fit$IV1], y.points=fit$data[, fit$IV2], z.points=fit$data[, fit$DV], ...)
+				p1 <- wireframe(z ~ x*y, new2,  drape=TRUE, 
+					scales 	= list(arrows = FALSE, cex=cex, col = "black", font = 1, tck=tck, distance=distance), 
+					xlab	= list(cex=cex, label=xlab, rot=label.rotation[["x"]]), 
+					ylab	= list(cex=cex, label=ylab, rot=label.rotation[["y"]]), 
+					zlab	= list(cex=cex, label=zlab, rot=label.rotation[["z"]]), zlim=zlim, 
+					screen	= rotation, colorkey=legend, 
+					at		= seq(zlim[1], zlim[2], length.out=length(pal)-1), col.regions=pal,
+					par.settings = list(
+						axis.line = list(col = "transparent"), 
+						layout.heights = list(top.padding=pad, bottom.padding=pad), 
+						layout.widths=list(left.padding=pad, right.padding=pad)), 
+					axes	= axesList, 
+					SPs		= SP.text, 
+					panel.3d.wireframe = mypanel2,
+					x.points=fit$data[, fit$IV1], y.points=fit$data[, fit$IV2], z.points=fit$data[, fit$DV], ...)
 			}
 				
 	}  # of type == "3d"
@@ -482,7 +509,8 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0,
 		if (!all(C == 0)) {
 			library(ggplot2)
 			library(RColorBrewer)
-			p1 <- ggplot(new2, aes_string(x="x", y="y", fill="z", z="z")) + geom_tile() + scale_fill_gradientn(zlab, colours=pal) + theme_bw() + theme(aspect.ratio=1) + xlab(xlab) + ylab(ylab)
+			
+			p1 <- ggplot(new2, aes_string(x="x", y="y", fill="z", z="z")) + geom_tile() + scale_fill_gradientn(zlab, colours=pal, limits=c(zlim[1], zlim[2])) + theme_bw() + theme(aspect.ratio=1) + xlab(xlab) + ylab(ylab)
 			
 			if (legend==FALSE) {
 				p1 <- p1 + guides(fill=FALSE)
@@ -504,7 +532,7 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0,
 				p1 <- p1+ geom_abline(data=data.frame(SP[c("p20", "p21")]), aes_string(intercept="p20", slope="p21"), linetype="dotted")
 			}
 		
-			if (showSP==TRUE & !any(is.na(SP[c("X0", "Y0")]))) {
+			if (param==TRUE & !any(is.na(SP[c("X0", "Y0")]))) {
 				p1 <- p1 + annotate("point", x=SP$X0, y=SP$Y0, z=max(new2$z))
 			}
 				
@@ -518,7 +546,7 @@ plotRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0,
 			}
 			
 			# plot CI of SP
-			if (showSP==TRUE & SP.CI==TRUE & !is.null(fit)) {
+			if (param==TRUE & SP.CI==TRUE & !is.null(fit)) {
 				PAR <- getPar(fit, "coef", model=model)
 				p1 <- p1 + annotate("errorbar", x=SP$X0, y=SP$Y0, ymin=PAR[PAR$label=="Y0", "ci.lower"], ymax=PAR[PAR$label=="Y0", "ci.upper"], z=max(new2$z), width=.3)
 				p1 <- p1 + annotate("errorbarh", x=SP$X0, y=SP$Y0, xmin=PAR[PAR$label=="X0", "ci.lower"], xmax=PAR[PAR$label=="X0", "ci.upper"], z=max(new2$z), height=.3)
@@ -544,9 +572,9 @@ plot.RSA <- function(x, ...) {
 #demoRSA(x=.625, y=.519, x2=-.196, xy=.285, y2=-.167)
 #demoRSA(x=.625, y=.519, x2=-.196, xy=.285, y2=-.167, type="c")
 #
-#plotRSA(fit=r1, type="3d", points=TRUE, rot=list(x=-58, y=50, z=26))
-#plotRSA(x=.05, x2=.1, xy=.20, rot=list(x=-50, y=58, z=36), legend=FALSE, type="c")
-#plotRSA(x=.05, x2=.1, xy=.20, rot=list(x=-50, y=58, z=36), legend=FALSE, type="3d")
+#plotRSA(fit=r1, type="3d", points=TRUE, rotation=list(x=-58, y=50, z=26))
+#plotRSA(x=.05, x2=.1, xy=.20, rotation=list(x=-50, y=58, z=36), legend=FALSE, type="c")
+#plotRSA(x=.05, x2=.1, xy=.20, rotation=list(x=-50, y=58, z=36), legend=FALSE, type="3d")
 #
 ## exampe of Edwards, 2002, Figure 3
 #p1 <- plotRSA(b0=5.628, x=.314, y=-.118, x2=-.145, y2=-.102, xy=.299, legend=FALSE, type="3d")

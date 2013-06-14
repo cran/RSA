@@ -259,7 +259,7 @@ demoRSA <- function(x=NULL, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0,
 		ry <- as.numeric(tclvalue(RY))
 		rz <- as.numeric(tclvalue(RZ))
 		
-		plot(plotRSA(x=x, y=y, x2=x2, y2=y2, xy=xy, w=w, wx=wx, wy=wy, b0=b0, rot=list(x=rx, y=ry, z=rz), zlim=zlim, xlim=xlim, ylim=ylim, points=points, demo=TRUE, type=type2, fit=fit, ...))
+		plot(plotRSA(x=x, y=y, x2=x2, y2=y2, xy=xy, w=w, wx=wx, wy=wy, b0=b0, rotation=list(x=rx, y=ry, z=rz), zlim=zlim, xlim=xlim, ylim=ylim, points=points, demo=TRUE, type=type2, fit=fit, ...))
     }
 
 	# define framework

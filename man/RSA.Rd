@@ -5,7 +5,8 @@
   RSA(formula, data = NULL, sample.cor = NULL,
     sample.nobs = NULL, center = FALSE, scale = FALSE,
     na.rm = FALSE, out.rm = TRUE, breakline = FALSE,
-    models = "default", cubic = FALSE, verbose = TRUE, ...)
+    models = "default", cubic = FALSE, verbose = TRUE,
+    control.variables = c(), ...)
 }
 \arguments{
   \item{formula}{A formula in the form \code{z ~ x*y},
@@ -43,13 +44,19 @@
 
   \item{models}{A vector with names of all models that
   should be computed. Should be any from c("absdiff",
-  "absunc", "diff", "additive", "IA", "sqdiff", "SSD",
-  "SRSD", "full"). For \code{models="all"}, all models are
-  computed, for \code{models="default"} all models but
-  absolute difference models are computed.}
+  "absunc", "diff", "additive", "IA", "sqdiff", "RR",
+  "SSD", "SRSD", "full"). For \code{models="all"}, all
+  models are computed, for \code{models="default"} all
+  models but absolute difference models are computed.}
 
   \item{cubic}{Should a cubic model with the additional
   terms Y^3, XY^2, YX^2, and X^3 be included?}
+
+  \item{control.variables}{A string vector with variable
+  names from \code{data}. These variables are added as
+  linear predictors to the model (in order "to control for
+  them"). No interactions with the other variables are
+  modeled.}
 
   \item{...}{Additional parameters passed to the lavaan sem
   function. For example: \code{se="boot"}}
@@ -100,13 +107,15 @@ RSA.ST(r1)	# get surface parameters
 data(motcon)
 r.m <- RSA(negAct~EM*IM, motcon)
 
-# Get a parameter list of 5000 bootstrap samples, only from the SSD model
+# Get a parameter list of 10 bootstrap samples (usually this should be set to 5000 or higher),
+# only from the SSD model
 b1 <- bootRSA(r.m, model="SSD", R=10)
 # Get a table of percentile confidence intervals and p-values from these bootstrap replications
 CI.boot(b1)
 
 # Plot the final model
-plot(r.m, model="SSD", xlab="Explicit intimacy motive", ylab="Implicit affiliation motive", zlab="Negative activation")
+plot(r.m, model="SSD", xlab="Explicit intimacy motive",
+		ylab="Implicit affiliation motive", zlab="Negative activation")
 }
 \seealso{
   \code{\link{demoRSA}}, \code{\link{plotRSA}},

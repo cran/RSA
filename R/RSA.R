@@ -17,8 +17,9 @@
 #' @param out.rm Should outliers according to Bollen & Jackman (1980) criteria be excluded from analyses?
 #' @param breakline Should the breakline in the unconstrained absolute difference model be allowed (the breakline is possible from the model formulation, but empirically rather unrealistic ...)
 #' @param verbose Should additional information during the computation process be printed?
-#' @param models A vector with names of all models that should be computed. Should be any from c("absdiff", "absunc", "diff", "additive", "IA", "sqdiff", "SSD", "SRSD", "full"). For \code{models="all"}, all models are computed, for \code{models="default"} all models but absolute difference models are computed.
+#' @param models A vector with names of all models that should be computed. Should be any from c("absdiff", "absunc", "diff", "additive", "IA", "sqdiff", "RR", "SSD", "SRSD", "full"). For \code{models="all"}, all models are computed, for \code{models="default"} all models but absolute difference models are computed.
 #' @param cubic Should a cubic model with the additional terms Y^3, XY^2, YX^2, and X^3 be included?
+#' @param control.variables A string vector with variable names from \code{data}. These variables are added as linear predictors to the model (in order "to control for them"). No interactions with the other variables are modeled.
 #' @param ... Additional parameters passed to the lavaan sem function. For example: \code{se="boot"}
 #'
 #'
@@ -56,22 +57,24 @@
 #' data(motcon)
 #' r.m <- RSA(negAct~EM*IM, motcon)
 #'
-#' # Get a parameter list of 5000 bootstrap samples, only from the SSD model
+#' # Get a parameter list of 10 bootstrap samples (usually this should be set to 5000 or higher),
+#' # only from the SSD model
 #' b1 <- bootRSA(r.m, model="SSD", R=10)
 #' # Get a table of percentile confidence intervals and p-values from these bootstrap replications
 #' CI.boot(b1)
 #' 
 #' # Plot the final model
-#' plot(r.m, model="SSD", xlab="Explicit intimacy motive", ylab="Implicit affiliation motive", zlab="Negative activation")
+#' plot(r.m, model="SSD", xlab="Explicit intimacy motive", 
+#' 		ylab="Implicit affiliation motive", zlab="Negative activation")
 
 
 # formula <- z.sq~x*y; data <- df; center=FALSE; scale=FALSE; out.rm=TRUE; breakline=FALSE; verbose=TRUE
 
-RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FALSE, scale=FALSE, na.rm=FALSE, out.rm=TRUE, breakline=FALSE, models="default", cubic=FALSE, verbose=TRUE, ...) {
+RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FALSE, scale=FALSE, na.rm=FALSE, out.rm=TRUE, breakline=FALSE, models="default", cubic=FALSE, verbose=TRUE, control.variables=c(), ...) {
 
-	if (length(models)==1 & models[1]=="all") {models <- c("absdiff", "absunc", "diff", "additive", "IA", "sqdiff", "SSD", "SRSD", "full")}
-	if (length(models)==1 & models[1]=="default") {models <- c("diff", "additive", "IA", "sqdiff", "SSD", "SRSD", "full")}
-	if (any(!models %in% c("absdiff", "absunc", "diff", "additive", "IA", "sqdiff", "SSD", "SSD", "SRSD", "SRSD", "full"))) {
+	if (length(models)==1 & models[1]=="all") {models <- c("absdiff", "absunc", "diff", "additive", "IA", "sqdiff", "RR", "SSD", "SRSD", "full")}
+	if (length(models)==1 & models[1]=="default") {models <- c("diff", "additive", "IA", "sqdiff", "RR", "SSD", "SRSD", "full")}
+	if (any(!models %in% c("absdiff", "absunc", "diff", "additive", "IA", "sqdiff", "RR", "SSD", "SRSD", "full"))) {
 		stop("Unknown model name provided in parameter 'models'.")
 	}
 	
@@ -80,25 +83,23 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 	mode <- "data"
 	
 	# set all result objects to NULL as default
-	s.full <- s.IA <- s.diff <- s.absdiff <- s.additive <- s.sqdiff <- s.sq.shift <- s.sq.rot <- s.absunc <- s.cubic <- NULL
+	s.NULL <- s.full <- s.IA <- s.diff <- s.absdiff <- s.additive <- s.sqdiff <- s.SSD <- s.SRSD <- s.absunc <- s.cubic <- s.RR <- NULL
 	sq.shape <- ""
 	
 	DV <- all.vars(formula)[1]
 	IV1 <- all.vars(formula)[2]
 	IV2 <- all.vars(formula)[3]
 
-	## Step 0a: Standardize values and calculate higher order terms
-	if (mode=="data") {
-		df <- data
-		df[, IV1] <- scale(df[, IV1], center=center, scale=scale)
-		df[, IV2] <- scale(df[, IV2], center=center, scale=scale)
+	## Step 0a: Standardize values (if requested) and calculate higher order terms
+	df <- data
+	df[, IV1] <- scale(df[, IV1], center=center, scale=scale)
+	df[, IV2] <- scale(df[, IV2], center=center, scale=scale)
 		
-		df <- add.variables(formula, data.frame(data.matrix(df)))
+	df <- add.variables(formula, data.frame(data.matrix(df)))
 	
-		# omit warnings if the zero point is outside of data range
-		if (0 < min(df[, IV1], na.rm=TRUE) | 0 > max(df[, IV1], na.rm=TRUE)) {warning(paste("The numerical zero point is outside of the range of variable", IV1, ". Please consider a re-centering of the variable."))}
-		if (0 < min(df[, IV2], na.rm=TRUE) | 0 > max(df[, IV2], na.rm=TRUE)) {warning(paste("The numerical zero point is outside of the range of variable", IV2, ". Please consider a re-centering of the variable."))}
-	}
+	# omit warnings if the zero point is outside of data range
+	if (0 < min(df[, IV1], na.rm=TRUE) | 0 > max(df[, IV1], na.rm=TRUE)) {warning(paste("The numerical zero point is outside of the range of variable", IV1, ". Please consider re-centering of the variable."))}
+	if (0 < min(df[, IV2], na.rm=TRUE) | 0 > max(df[, IV2], na.rm=TRUE)) {warning(paste("The numerical zero point is outside of the range of variable", IV2, ". Please consider re-centering of the variable."))}
 	
 	IV12 <- paste0(IV1, "2")
 	IV22 <- paste0(IV2, "2")
@@ -110,11 +111,13 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 	W_IV1 <- paste0("W_", IV1)
 	W_IV2 <- paste0("W_", IV2)
 
+	# define control variable
+	CV <- ifelse(length(control.variables > 0), paste0(" + ", paste(control.variables, collapse=" + ")), "")
 
 	## Run polynomial regression as a linear model
 
 	if (mode=="data") {
-		f <- paste0(DV, " ~ ", paste(IV1, IV2, IV12, IV_IA, IV22, sep=" + "))
+		f <- paste0(paste0(DV, " ~ ", paste(IV1, IV2, IV12, IV_IA, IV22, sep=" + ")), CV)
 		rs <- lm(f, df)
 	} else {
 		rs <- NA
@@ -135,13 +138,17 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 	}
 	
 
-	## Test lower order models
+	## Test all models
 	
 	library(lavaan)
 	
-	#COV <- cov(df[, c(DV, IV1, IV2, IV_IA, IV12, IV22, "W", W_IV1, W_IV2)], use="complete.obs")
+# suppress one type of lavaan warning, which cannot be ruled out analytically ...
+withCallingHandlers({	
 	
-	poly <- paste0(DV, " ~ b1*", IV1, " + b2*", IV2, " + b3*", IV12, " + b4*", IV_IA, " + b5*", IV22)
+	# Standard full polynomial of second degree
+	poly <- paste0(DV, " ~ b1*", IV1, " + b2*", IV2, " + b3*", IV12, " + b4*", IV_IA, " + b5*", IV22, CV)
+	
+	s.NULL <- sem(paste0(DV, "~ 1 + 0*", IV1, " + 0*", IV2, " + 0*", IV12, " + 0*", IV_IA, " + 0*", IV22, CV), data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
 	
 	if ("additive" %in% models) {
 		if (verbose==TRUE) print("Computing additive model ...")
@@ -153,30 +160,10 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 			"a2 := b3+b4+b5",
 			"a3 := b1-b2",
 			"a4 := b3-b4+b5",
-			"X0 := (b2*b4 - 2*b1*b5) / (4*b3*b5 - b4^2)",
-			"Y0 := (b1*b4 - 2*b2*b3) / (4*b3*b5 - b4^2)",
-			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
-			"p10 := Y0 - p11*X0",
-			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
-			"p20 := Y0 - p21*X0",
-			"as1X := b1 + p11*b2 + b4*p10 + 2*b5*p10*p11",
-			"as2X := b3 + b4*p11 + (p11^2)*b5",
-			"as1Y := b1/p11 + b2 - (2*b3*p10)/p11^2 - (b4*p10)/p11",
-			"as2Y := b3/p11^2 + b4/p11 + b5",
-			"as3X := b1 + p21*b2 + b4*p20 + 2*b5*p20*p21",
-			"as4X := b3 + b4*p21 + (p21^2)*b5",
-			"as3Y := b1/p21 + b2 - (2*b3*p20)/p21^2 - (b4*p20)/p21",
-			"as4Y := b3/p21^2 + b4/p21 + b5",
-			# eigenvalues
-			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
-			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 		sep="\n")
 		if (mode=="data") {
 			s.additive <- sem(m.additive, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
-		} else {
-			s.additive <- sem(m.additive, sample.cov=sample.cor, sample.nobs=sample.nobs, fixed.x=TRUE, meanstructure=TRUE, ...)
 		}
-		#summary(s.additive, fit.measures=TRUE)
 	}
 
 	if ("diff" %in% models) {
@@ -190,23 +177,6 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 			"a2 := b3+b4+b5",
 			"a3 := b1-b2",
 			"a4 := b3-b4+b5",
-			"X0 := (b2*b4 - 2*b1*b5) / (4*b3*b5 - b4^2)",
-			"Y0 := (b1*b4 - 2*b2*b3) / (4*b3*b5 - b4^2)",
-			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
-			"p10 := Y0 - p11*X0",
-			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
-			"p20 := Y0 - p21*X0",
-			"as1X := b1 + p11*b2 + b4*p10 + 2*b5*p10*p11",
-			"as2X := b3 + b4*p11 + (p11^2)*b5",
-			"as1Y := b1/p11 + b2 - (2*b3*p10)/p11^2 - (b4*p10)/p11",
-			"as2Y := b3/p11^2 + b4/p11 + b5",
-			"as3X := b1 + p21*b2 + b4*p20 + 2*b5*p20*p21",
-			"as4X := b3 + b4*p21 + (p21^2)*b5",
-			"as3Y := b1/p21 + b2 - (2*b3*p20)/p21^2 - (b4*p20)/p21",
-			"as4Y := b3/p21^2 + b4/p21 + b5",
-			# eigenvalues
-			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
-			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			sep="\n")
 			if (mode=="data") {
 				s.diff <- sem(m.diff, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
@@ -264,20 +234,6 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 			"a2 := b3+b4+b5",
 			"a3 := b1-b2",
 			"a4 := b3-b4+b5",
-			"X0 := (b2*b4 - 2*b1*b5) / (4*b3*b5 - b4^2)",
-			"Y0 := (b1*b4 - 2*b2*b3) / (4*b3*b5 - b4^2)",
-			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
-			"p10 := Y0 - p11*X0",
-			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
-			"p20 := Y0 - p21*X0",
-			"as1X := b1 + p11*b2 + b4*p10 + 2*b5*p10*p11",
-			"as2X := b3 + b4*p11 + (p11^2)*b5",
-			"as1Y := b1/p11 + b2 - (2*b3*p10)/p11^2 - (b4*p10)/p11",
-			"as2Y := b3/p11^2 + b4/p11 + b5",
-			"as3X := b1 + p21*b2 + b4*p20 + 2*b5*p20*p21",
-			"as4X := b3 + b4*p21 + (p21^2)*b5",
-			"as3Y := b1/p21 + b2 - (2*b3*p20)/p21^2 - (b4*p20)/p21",
-			"as4Y := b3/p21^2 + b4/p21 + b5",
 			# eigenvalues
 			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
@@ -291,48 +247,50 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 		#summary(s.sqdiff, fit.measures=TRUE)
 	}
 	
-	if (any(models %in% c("SSD"))) {
-		if (verbose==TRUE) print("Computing shifted squared difference model ...")
-		m.sq.shift <- paste(poly,
+	if ("SSD" %in% models) {
+		if (verbose==TRUE) print("Computing shifted squared difference model (SSD) ...")
+		m.SSD <- paste(poly,
 			"b1==-b2",
 			"b3==b5",
 			"b3+b4+b5==0",
-			"C := b1/(2*b3)",
 			"a1 := b1+b2",
 			"a2 := b3+b4+b5",
 			"a3 := b1-b2",
 			"a4 := b3-b4+b5",
-			"X0 := (b2*b4 - 2*b1*b5) / (4*b3*b5 - b4^2)",
-			"Y0 := (b1*b4 - 2*b2*b3) / (4*b3*b5 - b4^2)",
-			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
-			"p10 := Y0 - p11*X0",
-			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
-			"p20 := Y0 - p21*X0",
-			"as1X := b1 + p11*b2 + b4*p10 + 2*b5*p10*p11",
-			"as2X := b3 + b4*p11 + (p11^2)*b5",
-			"as1Y := b1/p11 + b2 - (2*b3*p10)/p11^2 - (b4*p10)/p11",
-			"as2Y := b3/p11^2 + b4/p11 + b5",
-			"as3X := b1 + p21*b2 + b4*p20 + 2*b5*p20*p21",
-			"as4X := b3 + b4*p21 + (p21^2)*b5",
-			"as3Y := b1/p21 + b2 - (2*b3*p20)/p21^2 - (b4*p20)/p21",
-			"as4Y := b3/p21^2 + b4/p21 + b5",
+			# eigenvalues
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
+			sep="\n")			
+		if (mode=="data") {
+			s.SSD <- sem(m.SSD, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
+		}
+	}
+	
+	if (any(models %in% c("RR"))) {
+		if (verbose==TRUE) print("Computing rising ridge model ...")
+		m.RR <- paste(poly,
+			"b1==b2",
+			"b3==b5",
+			"b3+b4+b5==0",
+			"a1 := b1+b2",
+			"a2 := b3+b4+b5",
+			"a3 := b1-b2",
+			"a4 := b3-b4+b5",
 			# eigenvalues
 			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			
 			sep="\n")
 		if (mode=="data") {
-			s.sq.shift <- sem(m.sq.shift, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
-		} else {
-			s.sq.shift <- sem(m.sq.shift, sample.cov=sample.cor, sample.nobs=sample.nobs, fixed.x=TRUE, meanstructure=TRUE, ...)
+			s.RR <- sem(m.RR, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
 		}
 		
-		#summary(s.sq.shift, fit.measures=TRUE)
+		#summary(s.RR, fit.measures=TRUE)
 	}
 	
 	if (any(models %in% c("SRSD"))) {
 		if (verbose==TRUE) print("Computing rotated squared difference model ...")
-		m.sq.rot <- paste(paste(poly, " + start(0.05)*", IV22),
+		m.SRSD <- paste(paste(poly, " + start(0.05)*", IV22),
 			"b5^2 > 0.00000001",
 			"b1 == (b2*b4)/(2*b5)",
 			"b3 == (b4*b4)/(4*b5)",
@@ -360,18 +318,14 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			sep="\n")
 		if (mode=="data") {
-			s.sq.rot <- sem(m.sq.rot, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
-		} else {
-			s.sq.rot <- sem(m.sq.rot, sample.cov=sample.cor, sample.nobs=sample.nobs, fixed.x=TRUE, meanstructure=TRUE, ...)
+			s.SRSD <- sem(m.SRSD, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
 		}
-		
 	
-		if (coef(s.sq.rot)[3] >= 0) {
+		if (coef(s.SRSD)[3] >= 0) {
 			sq.shape <- "up"
 			} else {
 				sq.shape <- "down"
 			}
-		#summary(s.sq.rot, fit.measures=TRUE)
 	}
 	
 	
@@ -414,7 +368,7 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 	if (cubic==TRUE) {
 		if (verbose==TRUE) print("Computing full cubic model ...")
 		m.cubic <-  paste0(poly, " + b9*", IV13, " + b10*", IV_IA2, " + b11*", IV_IA3, " + b12*", IV23)
-		print(m.cubic)
+		# print(m.cubic)
 		s.cubic <- sem(m.cubic, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)		
 	}
 	
@@ -469,9 +423,17 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 		#summary(s.absunc.JRE, fit.measures=TRUE)
 	}
 	
+},	  # end of "withCallingHandlers"
+
+# suppress one type of warning
+  warning=function(w) {
+	   W <- as.character(w$call)
+	   if (W[1] == "sqrt" & W[2] == "diag(def.cov)" & grepl("NaNs", w$message)) {invokeRestart("muffleWarning")}
+} )
+
 	
 	## Build results object
-	res <- list(models = list(full=s.full, IA=s.IA, diff=s.diff, absdiff=s.absdiff, additive=s.additive, sqdiff=s.sqdiff, SSD=s.sq.shift, SRSD=s.sq.rot, absunc=s.absunc, cubic=s.cubic), sq.shape = sq.shape, LM=rs, formula=formula, data=df, DV=DV, IV1=IV1, IV2=IV2, IV12=IV12, IV22=IV22, IV_IA=IV_IA, W_IV1=W_IV1, W_IV2=W_IV2, IV13=IV13, IV23=IV23, IV_IA2=IV_IA2, IV_IA3=IV_IA3, r.squared = summary(rs)$r.squared)
+	res <- list(models = list(null=s.NULL, full=s.full, IA=s.IA, diff=s.diff, absdiff=s.absdiff, additive=s.additive, sqdiff=s.sqdiff, RR=s.RR, SSD=s.SSD, SRSD=s.SRSD, absunc=s.absunc, cubic=s.cubic), sq.shape = sq.shape, LM=rs, formula=formula, data=df, DV=DV, IV1=IV1, IV2=IV2, IV12=IV12, IV22=IV22, IV_IA=IV_IA, W_IV1=W_IV1, W_IV2=W_IV2, IV13=IV13, IV23=IV23, IV_IA2=IV_IA2, IV_IA3=IV_IA3, r.squared = summary(rs)$r.squared)
 	
 	attr(res, "class") <- "RSA"
 	return(res)

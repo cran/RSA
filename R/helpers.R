@@ -1,3 +1,4 @@
+
 # helpers.R
 
 add.variables <- function(formula, df) {
@@ -73,24 +74,16 @@ getFreeParameters <- function(model) {
 
 # helper function: takes a list of lavaan models (can include NULLs), and returns the usual anova object
 anovaList <- function(modellist) {
-	# a0: list without NULLs
 	mods <- modellist[!sapply(modellist, function(x) is.null(x))]
 	mods <- mods[!sapply(mods, function(x) !inspect(x, "converged"))]
 	
 	if (length(mods) == 0) {
 		return(list(n.mods=0))
 	}
-		
-    # put them in order (using number of free parameters)
-    nfreepar <- sapply(mods, function(x) x@Fit@npar)
-    if(any(duplicated(nfreepar))) { ## FIXME: what to do here?
-        # what, same number of free parameters?
-        # maybe, we need to count number of constraints
-        ncon <- sapply(mods, function(x) { nrow(x@Model@con.jac) })
-        nfreepar <- nfreepar - ncon
-    }
-
-    mods <- mods[order(nfreepar, decreasing = TRUE)]		
+	
+    # put them in order (using df)
+    DF <- sapply(mods, fitmeasures, "df")
+    mods <- mods[order(DF, decreasing = FALSE)]
 		
 	pStr <- sapply(1:length(mods), function(x){ 
 		if(x==1) {
@@ -126,5 +119,74 @@ getIntersect <- function(b0=0, x=0, y=0, x2=0, xy=0, y2=0, p0, p1, xlim=c(-2, 2)
 
 model <- function(x, model="full") x$models[[model]]
 
+# transforms p-values to colors
+pRamp <- function(p, sig=.05, borderline=.10, bias=.8) {
+	# calculate bias that the color transition is at the borderline value
+	bias2 <- .33/(borderline/(1 - sig))
+	cR1 <- colorRamp(c("red", "red", "orange"), bias=bias, space="Lab")
+	cR2 <- colorRamp(c("orange", "green", "green"), bias=bias2, space="Lab")
+	
+	p2 <- rep("#FFFFFF", length(p))
+	if (length(p[p < sig])>0) {
+		p2[p < sig] <- rgb(cR1(p[p < sig]/sig), maxColorValue=255)
+	}
+	if (length(p[p >= sig])>0) {
+		p2[p >= sig] <- rgb(cR2((p[p >= sig] - sig) / (1 - sig)), maxColorValue=255)
+	}
+	return(p2)
+}
 
 
+
+# simple wrapper: formats a number in f.2 format
+f2 <- function(x, digits=2, prepoint=0, skipZero=FALSE) {
+	
+	if (skipZero == TRUE) {zero <- "."} else {zero <- "0."}
+	
+	if (length(dim(x)) == 2) {
+		apply(x, 2, function(x2) {gsub("0.", zero, sprintf(paste("%",prepoint,".",digits,"f",sep=""), x2) , fixed=TRUE)})
+	} else {
+		gsub("0.", zero, sprintf(paste("%",prepoint,".",digits,"f",sep=""), x) , fixed=TRUE)
+	}
+}
+
+
+
+# helper function: find closest value in vector
+f0 <- function (vec, target, unique = TRUE) {
+    ret <- vec[sapply(target, function(x) which.min(abs(x - vec)))]
+    if (unique) { ret <- unique(ret) }
+    ret
+}
+
+# compute the predicted value from a single pair of predictors
+predictRSA <- function(object, X, Y, model="full") {
+	C <- coef(object$models[[model]])
+	if (object$models[[model]]@Options$estimator != "DWLS") {
+		b0 <- as.numeric(ifelse(is.na(C[paste0(object$DV, "~1")]), b0, C[paste0(object$DV, "~1")]))
+		} else {
+			# the threshold is the negative of the intercept ...
+			b0 <- -as.numeric(ifelse(is.na(C[paste0(object$DV, "|t1")]), b0, C[paste0(object$DV, "|t1")]))
+		}
+	x <- as.numeric(ifelse(is.na(C["b1"]), 0, C["b1"]))
+	y <- as.numeric(ifelse(is.na(C["b2"]), 0, C["b2"]))
+	x2 <- as.numeric(ifelse(is.na(C["b3"]), 0, C["b3"]))
+	y2 <- as.numeric(ifelse(is.na(C["b5"]), 0, C["b5"]))
+	xy <- as.numeric(ifelse(is.na(C["b4"]), 0, C["b4"]))
+	w <- as.numeric(ifelse(is.na(C["b6"]), 0, C["b6"]))
+	wx <- as.numeric(ifelse(is.na(C["b7"]), 0, C["b7"]))
+	wy <- as.numeric(ifelse(is.na(C["b8"]), 0, C["b8"]))
+	
+	# cubic parameters
+	x3 <- as.numeric(ifelse(is.na(C["b9"]), 0, C["b9"]))
+	xy2 <- as.numeric(ifelse(is.na(C["b10"]), 0, C["b10"]))
+	x2y <- as.numeric(ifelse(is.na(C["b11"]), 0, C["b11"]))
+	y3 <- as.numeric(ifelse(is.na(C["b12"]), 0, C["b12"]))
+	
+	
+	C <- c(x, y, x2, y2, xy, w, wx, wy,x3, xy2, x2y, y3)
+	
+	# compute predicted value
+	Z <- b0 + colSums(C*t(cbind(X, Y, X^2, Y^2, X*Y, 0, 0, 0, X^3, X*Y^2, X^2*Y, Y^3)))
+	return(Z)
+}

@@ -8,7 +8,7 @@
 #'
 #' @export
 #' @param x RSA object
-#' @param type One of: "syntax", "coef", "R2"
+#' @param type One of: "syntax", "coef", "R2", "R2.adj", "free", "summary"
 #' @param model A string specifying the model; defaults to "full"
 #' @param ... Additional parameters passed to the extraction function
 #'
@@ -37,15 +37,26 @@
 
 getPar <- function(x, type="coef", model="full", ...) {
 	type <- tolower(type)
+	type <- match.arg(type, c("syntax", "coef", "r2", "rsquared", "r.squared", "r2.p", "rsquared.p", "r.squared.p", "r2.adj", "rsquared.adj", "r.squared.adj", "npar", "free", "summary"))
 	if (type=="syntax") {
 		return(x$models[[model]]@Options$model)
 	}
 	if (type=="coef") {
-		return(parameterEstimates(x$models[[model]], ...))
+		p1 <- parameterEstimates(x$models[[model]], ...)
+		p1 <- data.frame(p1[p1$label != "", -c(1:3)])
+		rownames(p1) <- p1$label
+		return(p1)
 	}
 	if (type %in% c("r2", "rsquared", "r.squared")) {
 		return(inspect(x$models[[model]], "R2", ...))
 	}
+	if (type %in% c("r2.p", "rsquared.p", "r.squared.p")) {
+		R <- inspect(x$models[[model]], "R2", ...)
+		n <- nobs(x$models[[model]])
+		k <- fitmeasures(x$models[[model]], "npar")
+		return(pf(((n-k-1)*R)/(k*(1-R)), k, n-k-1, lower.tail=FALSE))
+	}
+	
 	if (type %in% c("r2.adj", "rsquared.adj", "r.squared.adj")) {
 		freeparam <- getFreeParameters(x$models[[model]]) - fitmeasures(x$models[[model]], "Df")
 		r2.adj <- 1 - (1-inspect(x$models[[model]], "R2")) * ((nobs(x$models[[model]])-1)/(nobs(x$models[[model]]) - freeparam - 1))

@@ -4,18 +4,21 @@
 \usage{
   plotRSA(x = NULL, y = 0, x2 = 0, y2 = 0, xy = 0, w = 0,
     wx = 0, wy = 0, x3 = 0, xy2 = 0, x2y = 0, y3 = 0,
-    b0 = 0, xlim = NULL, ylim = NULL, zlim = NULL,
-    xlab = NULL, ylab = NULL, zlab = NULL,
-    surface = "predict", lambda = NULL,
+    b0 = 0, type = "3d", model = "full", xlim = NULL,
+    ylim = NULL, zlim = NULL, xlab = NULL, ylab = NULL,
+    zlab = NULL, surface = "predict", lambda = NULL,
     rotation = list(x = -63, y = 32, z = 15),
     label.rotation = list(x = 19, y = -40, z = 92),
     gridsize = 21, bw = FALSE, legend = TRUE, param = TRUE,
     axes = c("LOC", "LOIC", "PA1", "PA2"), project = FALSE,
-    cex = 1.2, type = "3d", points = FALSE, model = "full",
+    maxlines = FALSE, cex = 1.2,
+    points = list(show = TRUE, value = "raw", jitter = 0, color = "black", cex = 0.5),
     demo = FALSE, fit = NULL, link = "identity",
     tck = c(1.5, 1.5, 1.5), distance = c(1.3, 1.3, 1.4),
-    border = TRUE, contour = FALSE, hull = FALSE,
-    SP.CI = FALSE, pal = NULL, ...)
+    border = TRUE,
+    contour = list(show = FALSE, color = "grey40", highlight = c()),
+    hull = FALSE, SP.CI = FALSE, pal = NULL,
+    pal.range = "box", pad = 0, ...)
 }
 \arguments{
   \item{x}{Either an RSA object (returned by the \code{RSA}
@@ -91,8 +94,13 @@
   rotatable plot. Shortcuts (i.e., first letter of string)
   are sufficient}
 
-  \item{points}{Should the original data points be
-  overplotted?}
+  \item{points}{A list of parameters which define the
+  appearance of the raw scatter points: show = TRUE: Should
+  the original data points be overplotted? value="raw":
+  Plot the original z value, "predicted": plot the
+  predicted z value. jitter=0: Amount of jitter for the raw
+  data points. cex = .5: multiplication factor for point
+  size.}
 
   \item{model}{If x is an RSA object: from which model
   should the response surface be computed?}
@@ -118,6 +126,10 @@
   parameter \code{axes}) be also plotted as a projection on
   the bottom of the cube?}
 
+  \item{maxlines}{Should the maximum lines be plotted?
+  (red: maximum X for a given Y, blue: maximum Y for a
+  given X). Works only in type="3d"}
+
   \item{link}{Link function to transform the z axes.
   Implemented are "identity" (no transformation; default),
   "probit", and "logit"}
@@ -127,12 +139,20 @@
   box, which does not look good. In this case the border
   can be suppressed by setting \code{border=FALSE}.}
 
-  \item{contour}{Should the contour lines be plotted on the
-  3d wireframe plot? (Parameter only relevant for
-  \code{type="3d"})}
+  \item{contour}{A list defining the appearance of contour
+  lines (aka. height lines). show=TRUE: Should the contour
+  lines be plotted on the 3d wireframe plot? (Parameter
+  only relevant for \code{type="3d"}). color = "grey40":
+  Color of the contour lines. highlight = c(): A vector of
+  heights which should be highlighted (i.e., printed in
+  bold). Be careful: the highlighted line is not
+  necessarily exactly at the specified height; instead the
+  nearest height line is selected.}
 
-  \item{hull}{Plot the convex hull enclosing the raw data
-  points}
+  \item{hull}{Plot a bag plot on the surface (This is a
+  bivariate extension of the boxplot. 50% of points are in
+  the inner bag, 50% in the outer region). See Rousseeuw,
+  Ruts, & Tukey (1999).}
 
   \item{SP.CI}{Plot the CI of the stationary point (only
   relevant for \code{type="contour"})}
@@ -144,6 +164,17 @@
   of labels to the axes (see ?wireframe)}
 
   \item{pal}{A palette for shading}
+
+  \item{pal.range}{Should the color range be scaled to the
+  box (\code{pal.range = "box"}, default), or to the min
+  and max of the surface (\code{pal.range = "surface"})? If
+  set to "box", different surface plots can be compared
+  along their color, as long as the zlim is the same for
+  both.}
+
+  \item{pad}{Pad controls the margin around the figure
+  (positive numbers: larger margin, negative numbers:
+  smaller margin)}
 
   \item{...}{Additional parameters passed to the plotting
   function (e.g., main="Title"). A useful title might be
@@ -196,8 +227,13 @@ df <- within(df, {
 })
 
 r1 <- RSA(z.sq~x*y, df, models=c("sqdiff", "full", "IA"))
-plot(r1)
-plot(r1, points=TRUE, model="sqdiff")
+plot(r1)	# default: model = "full"
+plot(r1, model="sqdiff", points=list(show=TRUE, value="predicted"))
+}
+\references{
+  Rousseeuw, P. J., Ruts, I., & Tukey, J. W. (1999). The
+  Bagplot: A Bivariate Boxplot. The American Statistician,
+  53(4), 382-387. doi:10.1080/00031305.1999.10474494
 }
 \seealso{
   \code{\link{demoRSA}}, \code{\link{RSA}}

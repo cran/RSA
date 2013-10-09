@@ -4,26 +4,24 @@
 #' Performs several RSA model tests on a data set with two predictors
 #'
 #' @details
-#' You can also fit binary outcome variables with a probit link function. For that purpose, the response variable has to be defined as "ordered": \code{r1 <- RSA(Z.binary ~ X*Y, dat, ordered="Z.binary")} (for more details see the help file of the /code{sem} function in the \code{lavaan} package.). The results can also be plotted with probabilities on the z axis: \code{plot(r1, link="probit", zlim=c(0, 1), zlab="Probability")}.
+#' You can also fit binary outcome variables with a probit link function. For that purpose, the response variable has to be defined as "ordered": \code{r1 <- RSA(Z.binary ~ X*Y, dat, ordered="Z.binary")} (for more details see the help file of the \code{sem} function in the \code{lavaan} package.). The results can also be plotted with probabilities on the z axis using the probit link function: \code{plot(r1, link="probit", zlim=c(0, 1), zlab="Probability")}. \code{lavaan} at the moment only supports a probit link function for binary outcomes, not a logit link.
 #'
 #' @export
 #' @param formula A formula in the form \code{z ~ x*y}, specifying the variable names used from the data frame, where z is the name of the response variable, and x and y are the names of the predictor variables.
 #' @param data A data frame with the variables
-#' @param sample.cor A matrix with the sample correlation matrix - you have to provide either raw data in the data argument, or a sample.cor and a sample.nobs
-#' @param sample.nobs Number of observations in the sample (goes along with sample.cor)
 #' @param center Should predictor variables be centered on the sample mean before analyses?
 #' @param scale Should predictor variables be scaled to SD = 1 before analyses?
 #' @param na.rm Remove missings before proceeding?
 #' @param out.rm Should outliers according to Bollen & Jackman (1980) criteria be excluded from analyses?
 #' @param breakline Should the breakline in the unconstrained absolute difference model be allowed (the breakline is possible from the model formulation, but empirically rather unrealistic ...)
 #' @param verbose Should additional information during the computation process be printed?
-#' @param models A vector with names of all models that should be computed. Should be any from c("absdiff", "absunc", "diff", "additive", "IA", "sqdiff", "RR", "SSD", "SRSD", "full"). For \code{models="all"}, all models are computed, for \code{models="default"} all models but absolute difference models are computed.
+#' @param models A vector with names of all models that should be computed. Should be any from c("absdiff", "absunc", "diff", "additive", "IA", "sqdiff", "RR", "SSD", "SRSD", "full", "null"). For \code{models="all"}, all models are computed, for \code{models="default"} all models besides absolute difference models are computed.
 #' @param cubic Should a cubic model with the additional terms Y^3, XY^2, YX^2, and X^3 be included?
 #' @param control.variables A string vector with variable names from \code{data}. These variables are added as linear predictors to the model (in order "to control for them"). No interactions with the other variables are modeled.
 #' @param ... Additional parameters passed to the lavaan sem function. For example: \code{se="boot"}
 #'
 #'
-#' @seealso \code{\link{demoRSA}}, \code{\link{plotRSA}}, \code{\link{RSA.ST}}
+#' @seealso \code{\link{demoRSA}}, \code{\link{plotRSA}}, \code{\link{RSA.ST}}, \code{\link{confint.RSA}}
 #'
 #' @examples
 #' # Compute response surface from a fake data set
@@ -43,7 +41,7 @@
 #' 	z.add <- diff + 0.4*x + rnorm(n, 0, err)
 #' 	z.complex <- 0.4*x + - 0.2*x*y + + 0.1*x^2 - 0.03*y^2 + rnorm(n, 0, err)
 #' })
-#' 
+#' \dontrun{
 #' r1 <- RSA(z.sq~x*y, df)
 #' print(r1)
 #' compare(r1)
@@ -55,36 +53,31 @@
 #'
 #' # Motive congruency example
 #' data(motcon)
-#' r.m <- RSA(negAct~EM*IM, motcon)
+#' r.m <- RSA(postVA~ePow*iPow, motcon)
 #'
-#' # Get a parameter list of 10 bootstrap samples (usually this should be set to 5000 or higher),
+#' # Get boostrapped CIs with 10 bootstrap samples (usually this should be set to 5000 or higher),
 #' # only from the SSD model
-#' b1 <- bootRSA(r.m, model="SSD", R=10)
-#' # Get a table of percentile confidence intervals and p-values from these bootstrap replications
-#' CI.boot(b1)
+#' c1 <- confint(r.m, model="SSD", method="boot", R=10)
 #' 
 #' # Plot the final model
-#' plot(r.m, model="SSD", xlab="Explicit intimacy motive", 
-#' 		ylab="Implicit affiliation motive", zlab="Negative activation")
+#' plot(r.m, model="RR", xlab="Explicit power motive", 
+#' 		ylab="Implicit power motive", zlab="Affective valence")
+#' }
 
+RSA <- function(formula, data=NULL, center=FALSE, scale=FALSE, na.rm=FALSE, 
+	out.rm=TRUE, breakline=FALSE, models="default", cubic=FALSE, 
+	verbose=TRUE, control.variables=c(), ...) {
 
-# formula <- z.sq~x*y; data <- df; center=FALSE; scale=FALSE; out.rm=TRUE; breakline=FALSE; verbose=TRUE
-
-RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FALSE, scale=FALSE, na.rm=FALSE, out.rm=TRUE, breakline=FALSE, models="default", cubic=FALSE, verbose=TRUE, control.variables=c(), ...) {
-
-	if (length(models)==1 & models[1]=="all") {models <- c("absdiff", "absunc", "diff", "additive", "IA", "sqdiff", "RR", "SSD", "SRSD", "full")}
-	if (length(models)==1 & models[1]=="default") {models <- c("diff", "additive", "IA", "sqdiff", "RR", "SSD", "SRSD", "full")}
-	if (any(!models %in% c("absdiff", "absunc", "diff", "additive", "IA", "sqdiff", "RR", "SSD", "SRSD", "full"))) {
+	validmodels <- c("absdiff", "absunc", "diff", "additive", "IA", "sqdiff", "SRRR", "SRR", "RR", "SSD", "SRSD", "full", "null")
+	if (length(models)==1 & models[1]=="all") {models <- validmodels}
+	if (length(models)==1 & models[1]=="default") {models <- c("diff", "additive", "IA", "sqdiff", "SRRR", "SRR", "RR", "SSD", "SRSD", "full", "null")}
+	if (any(!models %in% validmodels))
 		stop("Unknown model name provided in parameter 'models'.")
-	}
-	
-	if (is.null(data) & is.null(sample.cor) & is.null(sample.nobs)) stop("Please provide either a data frame or a correlation matrix!")
-		
-	mode <- "data"
 	
 	# set all result objects to NULL as default
-	s.NULL <- s.full <- s.IA <- s.diff <- s.absdiff <- s.additive <- s.sqdiff <- s.SSD <- s.SRSD <- s.absunc <- s.cubic <- s.RR <- NULL
-	sq.shape <- ""
+	s.NULL <- s.full <- s.IA <- s.diff <- s.absdiff <- s.additive <- s.sqdiff <- s.SSD <- s.SRSD <- s.absunc <- s.cubic <- s.RR <- s.SRR <- s.SRRR <- NULL
+	SRSD.rot <- ""
+	SRRR.rot <- ""
 	
 	DV <- all.vars(formula)[1]
 	IV1 <- all.vars(formula)[2]
@@ -97,9 +90,20 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 		
 	df <- add.variables(formula, data.frame(data.matrix(df)))
 	
-	# omit warnings if the zero point is outside of data range
-	if (0 < min(df[, IV1], na.rm=TRUE) | 0 > max(df[, IV1], na.rm=TRUE)) {warning(paste("The numerical zero point is outside of the range of variable", IV1, ". Please consider re-centering of the variable."))}
-	if (0 < min(df[, IV2], na.rm=TRUE) | 0 > max(df[, IV2], na.rm=TRUE)) {warning(paste("The numerical zero point is outside of the range of variable", IV2, ". Please consider re-centering of the variable."))}
+	# give warnings if the zero point is outside of data range
+	if (0 < min(df[, IV1], na.rm=TRUE) | 0 > max(df[, IV1], na.rm=TRUE)) 
+		warning(paste("The numerical zero point is outside of the range of variable", IV1, ". Please consider re-centering of the variable."))
+	if (0 < min(df[, IV2], na.rm=TRUE) | 0 > max(df[, IV2], na.rm=TRUE)) 
+		warning(paste("The numerical zero point is outside of the range of variable", IV2, ". Please consider re-centering of the variable."))
+		
+	# give warning if one variable has a much higher range than the other variable
+	if ((max(df[, IV1], na.rm=TRUE) - min(df[, IV1], na.rm=TRUE)) / (max(df[, IV2], na.rm=TRUE) - min(df[, IV2], na.rm=TRUE)) > 2)
+		warning("Predictor variables have a very different range (by factor 2)- please check scaling of variables.")
+	
+	# We need the overall maximum (minimum) for an additional constraint for the SRSD and SRRR models:
+	# The shifting constant C should not be greater (smaller) than the maximum (minimum) data point
+	overall.max <- max(max(df[, IV1], na.rm=TRUE), max(df[, IV2], na.rm=TRUE))
+	overall.min <- min(min(df[, IV1], na.rm=TRUE), min(df[, IV2], na.rm=TRUE))
 	
 	IV12 <- paste0(IV1, "2")
 	IV22 <- paste0(IV2, "2")
@@ -114,17 +118,12 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 	# define control variable
 	CV <- ifelse(length(control.variables > 0), paste0(" + ", paste(control.variables, collapse=" + ")), "")
 
-	## Run polynomial regression as a linear model
-
-	if (mode=="data") {
-		f <- paste0(paste0(DV, " ~ ", paste(IV1, IV2, IV12, IV_IA, IV22, sep=" + ")), CV)
-		rs <- lm(f, df)
-	} else {
-		rs <- NA
-	}
+	## Run polynomial regression as a OLS linear model
+	f <- paste0(paste0(DV, " ~ ", paste(IV1, IV2, IV12, IV_IA, IV22, sep=" + ")), CV)
+	rs <- lm(f, df)
 	
 	
-	if (out.rm == TRUE & mode=="data") {
+	if (out.rm == TRUE) {
 		# get outliers and influential cases according to Bollen & Jackman, 1980
 	
 		inf <- influence.measures(rs)
@@ -140,18 +139,18 @@ RSA <- function(formula, data=NULL, sample.cor=NULL, sample.nobs=NULL, center=FA
 
 	## Test all models
 	
-	library(lavaan)
-	
-# suppress one type of lavaan warning, which cannot be ruled out analytically ...
+# suppress some types of lavaan warning, which cannot be ruled out analytically ...
 withCallingHandlers({	
 	
 	# Standard full polynomial of second degree
 	poly <- paste0(DV, " ~ b1*", IV1, " + b2*", IV2, " + b3*", IV12, " + b4*", IV_IA, " + b5*", IV22, CV)
 	
-	s.NULL <- sem(paste0(DV, "~ 1 + 0*", IV1, " + 0*", IV2, " + 0*", IV12, " + 0*", IV_IA, " + 0*", IV22, CV), data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
+	if ("null" %in% models) {
+		s.NULL <- sem(paste0(DV, "~ 1 + 0*", IV1, " + 0*", IV2, " + 0*", IV12, " + 0*", IV_IA, " + 0*", IV22, CV), data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
+	}
 	
 	if ("additive" %in% models) {
-		if (verbose==TRUE) print("Computing additive model ...")
+		if (verbose==TRUE) print("Computing additive model (additive) ...")
 		m.additive <-  paste(poly,
 			"b3==0",
 			"b4==0",
@@ -161,13 +160,11 @@ withCallingHandlers({
 			"a3 := b1-b2",
 			"a4 := b3-b4+b5",
 		sep="\n")
-		if (mode=="data") {
-			s.additive <- sem(m.additive, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
-		}
+		s.additive <- sem(m.additive, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
 	}
 
 	if ("diff" %in% models) {
-		if (verbose==TRUE) print("Computing difference model ...")
+		if (verbose==TRUE) print("Computing difference model (diff) ...")
 		m.diff <- paste(poly,
 			"b3==0",
 			"b4==0",
@@ -178,17 +175,12 @@ withCallingHandlers({
 			"a3 := b1-b2",
 			"a4 := b3-b4+b5",
 			sep="\n")
-			if (mode=="data") {
-				s.diff <- sem(m.diff, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
-			} else {
-				s.diff <- sem(m.diff, sample.cov=sample.cor, sample.nobs=sample.nobs, fixed.x=TRUE, meanstructure=TRUE, ...)
-			}
-		
+			s.diff <- sem(m.diff, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
 		#summary(s.diff, fit.measures=TRUE)
 	}
 
 	if ("IA" %in% models) {
-		if (verbose==TRUE) print("Computing interaction model ...")
+		if (verbose==TRUE) print("Computing interaction model (IA)...")
 		m.IA <- paste(poly,
 			"b3==0",
 			"b5==0",
@@ -214,17 +206,12 @@ withCallingHandlers({
 			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 		sep="\n")
-		if (mode=="data") {
-			s.IA <- sem(m.IA, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
-		} else {
-			s.IA <- sem(m.IA, sample.cov=sample.cor, sample.nobs=sample.nobs, fixed.x=TRUE, meanstructure=TRUE, ...)
-		}
 		
-		#summary(s.IA, fit.measures=TRUE)
+			s.IA <- sem(m.IA, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
 	}
 	
 	if ("sqdiff" %in% models) {
-		if (verbose==TRUE) print("Computing squared difference model ...")
+		if (verbose==TRUE) print("Computing squared difference model (sqdiff) ...")
 		m.sqdiff <- paste(poly,
 			"b1==0",
 			"b2==0",
@@ -238,13 +225,7 @@ withCallingHandlers({
 			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			sep="\n")			
-		if (mode=="data") {
 			s.sqdiff <- sem(m.sqdiff, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
-		} else {
-			s.sqdiff <- sem(m.sqdiff, sample.cov=sample.cor, sample.nobs=sample.nobs, fixed.x=TRUE, meanstructure=TRUE, ...)
-		}
-		
-		#summary(s.sqdiff, fit.measures=TRUE)
 	}
 	
 	if ("SSD" %in% models) {
@@ -257,17 +238,18 @@ withCallingHandlers({
 			"a2 := b3+b4+b5",
 			"a3 := b1-b2",
 			"a4 := b3-b4+b5",
+			"C := b1 / (2*b3)",
+			# paste0("C > ",overall.min),
+			# paste0("C < ",overall.max),
 			# eigenvalues
 			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			sep="\n")			
-		if (mode=="data") {
 			s.SSD <- sem(m.SSD, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
-		}
 	}
 	
 	if (any(models %in% c("RR"))) {
-		if (verbose==TRUE) print("Computing rising ridge model ...")
+		if (verbose==TRUE) print("Computing rising ridge model (RR) ...")
 		m.RR <- paste(poly,
 			"b1==b2",
 			"b3==b5",
@@ -276,26 +258,109 @@ withCallingHandlers({
 			"a2 := b3+b4+b5",
 			"a3 := b1-b2",
 			"a4 := b3-b4+b5",
+			"meaneffect := b1+b2",
 			# eigenvalues
 			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			
 			sep="\n")
-		if (mode=="data") {
 			s.RR <- sem(m.RR, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
-		}
-		
-		#summary(s.RR, fit.measures=TRUE)
 	}
 	
+	if (any(models %in% c("SRR"))) {
+		if (verbose==TRUE) print("Computing shifted rising ridge model (SRR) ...")
+		m.SRR <- paste(poly,
+			"b3==b5",
+			"b3+b4+b5==0",
+			"a1 := b1+b2",
+			"a2 := b3+b4+b5",
+			"a3 := b1-b2",
+			"a4 := b3-b4+b5",
+			"meaneffect := b1+b2",
+			"C := (b2-b1) / (4*b3)",
+			#paste0("C > ",overall.min),
+			#paste0("C < ",overall.max),
+			# eigenvalues
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
+			
+			sep="\n")
+			s.SRR <- sem(m.SRR, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
+	}
+	
+	
+	if (any(models %in% c("SRRR"))) {
+			if (verbose==TRUE) print("Computing rotated and shifted rising ridge model (SRRR), up ...")
+			m.SRRR.up <- paste(paste(poly, " + start(0.01)*", IV12, " + start(0.01)*", IV22),
+				"b3 > 0.000001",
+				"b5 > 0.000001",
+				"b4^2 == 4*b3*b5",
+				"a1 := b1+b2",
+				"a2 := b3+b4+b5",
+				"a3 := b1-b2",
+				"a4 := b3-b4+b5",
+				"meaneffect := (b2*b4 - 2*b1*b5) / b4",
+				"C := (-2*b1*b5 - b2*b4) / (4*b4*b5)",
+				"S := (-b4) / (2*b5)",
+				# eigenvalues
+				"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+				"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
+		
+				sep="\n")
+				s.SRRR.up <- sem(m.SRRR.up, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)	
+				
+			if (verbose==TRUE) print("Computing rotated and shifted rising ridge model (SRRR), down ...")
+			m.SRRR.down <- paste(paste(poly, " + start(-0.01)*", IV12, " + start(-0.01)*", IV22),
+			#m.SRRR <- paste(paste(poly, " + start(-0.001)*", IV22),
+				"b3 < 0.000001",
+				"b5 < 0.000001",
+				"b4^2 == 4*b3*b5",
+				"a1 := b1+b2",
+				"a2 := b3+b4+b5",
+				"a3 := b1-b2",
+				"a4 := b3-b4+b5",
+				"meaneffect := (b2*b4 - 2*b1*b5) / b4",
+				"C := (-2*b1*b5 - b2*b4) / (4*b4*b5)",
+				"S := (-b4) / (2*b5)",
+				# eigenvalues
+				"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+				"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
+	
+				sep="\n")
+				s.SRRR.down <- sem(m.SRRR.down, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)	
+				
+			if (inspect(s.SRRR.up, "converged") == FALSE & inspect(s.SRRR.down, "converged") == TRUE) {
+				SRRR.rot <- "down"
+			} else 
+			if (inspect(s.SRRR.up, "converged") == TRUE & inspect(s.SRRR.down, "converged") == FALSE) {
+				SRRR.rot <- "up"
+			} else 
+			if (inspect(s.SRRR.up, "converged") == TRUE & inspect(s.SRRR.down, "converged") == TRUE) {
+				SRRR.rot <- ifelse(fitMeasures(s.SRRR.up, "chisq") > fitMeasures(s.SRRR.down, "chisq"), "down", "up")
+			} else {
+				if (verbose==TRUE) print("Warning: SRRR model has not converged (neither up nor down curvature)")
+			}
+			if (SRRR.rot == "up") {
+				s.SRRR <- s.SRRR.up
+			} else 
+			if (SRRR.rot == "down") {
+				s.SRRR <- s.SRRR.down
+			}
+			if (verbose == TRUE) print(paste0("Direction of SRRR curvature: ", SRRR.rot))
+			
+	}
+	
+	
 	if (any(models %in% c("SRSD"))) {
-		if (verbose==TRUE) print("Computing rotated squared difference model ...")
-		m.SRSD <- paste(paste(poly, " + start(0.05)*", IV22),
-			"b5^2 > 0.00000001",
+		if (verbose==TRUE) print("Computing rotated squared difference model (SRSD), up ...")
+		m.SRSD.up <- paste(paste(poly, " + start(0.001)*", IV22),
 			"b1 == (b2*b4)/(2*b5)",
-			"b3 == (b4*b4)/(4*b5)",
+			"b3 > 0.000001",
+			"b5 > 0.000001",
+			"b4^2 == 4*b3*b5",
+			
 			"C := -.5*(b2/b5)",
-			"S := -(b1/b2)",
+			"S := (-b4) / (2*b5)",
 			"a1 := b1+b2",
 			"a2 := b3+b4+b5",
 			"a3 := b1-b2",
@@ -317,15 +382,61 @@ withCallingHandlers({
 			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			sep="\n")
-		if (mode=="data") {
-			s.SRSD <- sem(m.SRSD, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
-		}
+			s.SRSD.up <- sem(m.SRSD.up, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
+			
+			
+		if (verbose==TRUE) print("Computing rotated squared difference model (SRSD), down ...")
+		m.SRSD.down <- paste(paste(poly, " + start(-0.001)*", IV22),
+			"b1 == (b2*b4)/(2*b5)",
+			"b3 < 0.000001",
+			"b5 < 0.000001",
+			"b4^2 == 4*b3*b5",
+		
+			"C := -.5*(b2/b5)",
+			"S := (-b4) / (2*b5)",
+			"a1 := b1+b2",
+			"a2 := b3+b4+b5",
+			"a3 := b1-b2",
+			"a4 := b3-b4+b5",
+			"X0 := (b2*b4 - 2*b1*b5) / (4*b3*b5 - b4^2)",
+			"Y0 := (b1*b4 - 2*b2*b3) / (4*b3*b5 - b4^2)",
+			"p11 := (b5 - b3 + sqrt(((b3 - b5)^2) + (b4^2))) / b4",
+			"p10 := Y0 - p11*X0",
+			"p21 :=  (b5 - b3 - sqrt((b3 - b5)^2 + b4^2)) / b4", 
+			"p20 := Y0 - p21*X0",
+			"as1X := b1 + p11*b2 + b4*p10 + 2*b5*p10*p11",
+			"as2X := b3 + b4*p11 + (p11^2)*b5",
+			"as1Y := b1/p11 + b2 - (2*b3*p10)/p11^2 - (b4*p10)/p11",
+			"as2Y := b3/p11^2 + b4/p11 + b5",
+			"as3X := b1 + p21*b2 + b4*p20 + 2*b5*p20*p21",
+			"as4X := b3 + b4*p21 + (p21^2)*b5",
+			"as3Y := b1/p21 + b2 - (2*b3*p20)/p21^2 - (b4*p20)/p21",
+			"as4Y := b3/p21^2 + b4/p21 + b5",
+			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
+			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
+			sep="\n")
+			s.SRSD.down <- sem(m.SRSD.down, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
 	
-		if (coef(s.SRSD)[3] >= 0) {
-			sq.shape <- "up"
+			if (inspect(s.SRSD.up, "converged") == FALSE & inspect(s.SRSD.down, "converged") == TRUE) {
+				SRSD.rot <- "down"
+			} else 
+			if (inspect(s.SRSD.up, "converged") == TRUE & inspect(s.SRSD.down, "converged") == FALSE) {
+				SRSD.rot <- "up"
+			} else 
+			if (inspect(s.SRSD.up, "converged") == TRUE & inspect(s.SRSD.down, "converged") == TRUE) {
+				SRSD.rot <- ifelse(fitMeasures(s.SRSD.up, "chisq") > fitMeasures(s.SRSD.down, "chisq"), "down", "up")
 			} else {
-				sq.shape <- "down"
+				if (verbose==TRUE) print("Warning: SRSD model has not converged (neither up nor down curvature)")
 			}
+			if (SRSD.rot == "up") {
+				s.SRSD <- s.SRSD.up
+			} else 
+			if (SRSD.rot == "down") {
+				s.SRSD <- s.SRSD.down
+			}
+			if (verbose == TRUE) print(paste0("Direction of SRSD curvature: ", SRSD.rot))
+
+		
 	}
 	
 	
@@ -355,13 +466,7 @@ withCallingHandlers({
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
 			sep="\n"
 		)
-		if (mode=="data") {
-			s.full <- sem(m.full, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
-		} else {
-			s.full <- sem(m.full, sample.cov=sample.cor, sample.nobs=sample.nobs, fixed.x=TRUE, meanstructure=TRUE, ...)
-		}
-		
-		#summary(s.full, fit.measures=TRUE)
+		s.full <- sem(m.full, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
 	}
 	
 	
@@ -398,13 +503,8 @@ withCallingHandlers({
 			"b6 == 0",
 			"b7 == -b8",
 			sep="\n")
-		if (mode=="data") {
+			
 			s.absdiff <- sem(m.absdiff, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
-		} else {
-			s.absdiff <- sem(m.absdiff, sample.cov=sample.cor, sample.nobs=sample.nobs, fixed.x=TRUE, meanstructure=TRUE, ...)
-		}
-		
-		#summary(s.absdiff.JRE, fit.measures=TRUE)
 	}
 	
 	if ("absunc" %in% models) {
@@ -414,26 +514,66 @@ withCallingHandlers({
 			paste0(DV, " ~ b1*", IV1, " + b2*", IV2, " + b6*W + b7*W_", IV1, " + b8*W_", IV2),
 			ifelse(breakline==TRUE, "b6==0", ""),
 			sep="\n")
-		if (mode=="data") {
+			
 			s.absunc <- sem(m.absunc, data=df, fixed.x=TRUE, meanstructure=TRUE, ...)
-		} else {
-			s.absunc <- sem(m.absunc, sample.cov=sample.cor, sample.nobs=sample.nobs, fixed.x=TRUE, meanstructure=TRUE, ...)
-		}
-		
-		#summary(s.absunc.JRE, fit.measures=TRUE)
 	}
 	
 },	  # end of "withCallingHandlers"
 
-# suppress one type of warning
+# suppress two types of warning
   warning=function(w) {
 	   W <- as.character(w$call)
-	   if (W[1] == "sqrt" & W[2] == "diag(def.cov)" & grepl("NaNs", w$message)) {invokeRestart("muffleWarning")}
+	   if (
+		   (W[1] == "sqrt" & W[2] == "diag(def.cov)" & grepl("NaNs", w$message)) |
+		   (W[1] == "sqrt" & W[2] == "b3 * b5") |
+		   (W[1] == "nlminb" & W[2] == "x.par")
+		  ) {invokeRestart("muffleWarning")}
 } )
 
+
+	# ---------------------------------------------------------------------
+	# Sanity check: Check results for convergence problems
+	# Sometimes the SRRR or the SRSD model find a bad solution and have a higher chi2 than their nested models (which is theoretically not possible)
+	chisq1 <- plyr::ldply(list(full=s.full, SRRR=s.SRRR, SRR=s.SRR, RR=s.RR, sqdiff=s.sqdiff), function(x) {
+		chi <- -1
+		if (!is.null(x)) {
+			if (inspect(x, "converged")==TRUE) chi <-  fitMeasures(x, "chisq")
+		}
+		return(chi)
+	})
+	chisq1 <- chisq1[chisq1[, 2]>=0, ]
+	if (nrow(chisq1)>1) {
+		chisq1$lag <- c(diff(chisq1[, 2], lag=1), NA)
+		if (any(chisq1$lag < 0, na.rm=TRUE)) {
+			warning(paste0("There are convergence problems with model ", chisq1[which(chisq1$lag < 0), ".id"], ". Its chi-square value is higher than that of a nested model, which is theoretically not possible. Please inspect the results with care, using the compare()-function"))
+		}
+	}
 	
-	## Build results object
-	res <- list(models = list(null=s.NULL, full=s.full, IA=s.IA, diff=s.diff, absdiff=s.absdiff, additive=s.additive, sqdiff=s.sqdiff, RR=s.RR, SSD=s.SSD, SRSD=s.SRSD, absunc=s.absunc, cubic=s.cubic), sq.shape = sq.shape, LM=rs, formula=formula, data=df, DV=DV, IV1=IV1, IV2=IV2, IV12=IV12, IV22=IV22, IV_IA=IV_IA, W_IV1=W_IV1, W_IV2=W_IV2, IV13=IV13, IV23=IV23, IV_IA2=IV_IA2, IV_IA3=IV_IA3, r.squared = summary(rs)$r.squared)
+	chisq2 <- plyr::ldply(list(full=s.full, SRRR=s.SRRR, SRSD=s.SRSD, SSD=s.SSD, sqdiff=s.sqdiff), function(x) {
+		chi <- -1
+		if (!is.null(x)) {
+			if (inspect(x, "converged")==TRUE) chi <-  fitMeasures(x, "chisq")
+		}
+		return(chi)
+		
+	})
+	chisq2 <- chisq2[chisq2[, 2]>=0, ]
+	
+	if (nrow(chisq1)>1) {
+		chisq2$lag <- c(diff(chisq2[, 2], lag=1), NA)
+		if (any(chisq2$lag < 0, na.rm=TRUE)) {
+			warning(paste0("There are convergence problems with model ", chisq2[which(chisq2$lag < 0), ".id"], ". Its chi-square value is higher than that of a nested model, which is theoretically not possible. Please inspect the results with care, using the compare()-function"))
+		}
+	}
+
+	
+	# ---------------------------------------------------------------------
+	# Build results object
+	res <- list(
+		models = list(null=s.NULL, full=s.full, IA=s.IA, diff=s.diff, absdiff=s.absdiff, additive=s.additive, sqdiff=s.sqdiff, SRRR=s.SRRR, SRR=s.SRR, RR=s.RR, SSD=s.SSD, SRSD=s.SRSD, absunc=s.absunc, cubic=s.cubic), 
+		SRSD.rot = SRSD.rot, SRRR.rot = SRRR.rot, LM=rs, formula=formula, 
+		data=df, DV=DV, IV1=IV1, IV2=IV2, IV12=IV12, IV22=IV22, IV_IA=IV_IA, W_IV1=W_IV1, W_IV2=W_IV2, IV13=IV13, IV23=IV23, IV_IA2=IV_IA2, IV_IA3=IV_IA3, 
+		r.squared = summary(rs)$r.squared)
 	
 	attr(res, "class") <- "RSA"
 	return(res)
@@ -442,8 +582,7 @@ withCallingHandlers({
 
 
 getfit <- function(x) {
-	library(plyr)
-	res <- laply(x$models, function(m) {fitMeasures(m)[c("aic", "bic", "cfi", "tli", "chisq", "df", "pvalue", "rmsea", "srmr")]})
+	res <- plyr::laply(x$models, function(m) {fitMeasures(m)[c("aic", "bic", "cfi", "tli", "chisq", "df", "pvalue", "rmsea", "srmr")]})
 	rownames(res) <- names(x$models)
 	res <- data.frame(res)
 	res$rel.aic <- (res$aic - min(res$aic))/(max(res$aic) - min(res$aic))
@@ -468,11 +607,11 @@ bestmodel <- function(x) {
 	if (length(which(f$rel.aic < .01)) == 1) {
 		m <- rownames(f)[which(f$rel.aic < .01)]
 	} else 	
-	# AIC is ambiguos: let BIC decide!
+	# AIC is ambiguous: let BIC decide!
 	if (length(which(f$rel.aic < .01)) > 1 & length(which(f$rel.bic < .01)) == 1) {
 		m <- rownames(f)[which(f$rel.bic < .01)]
 	} else 	
-	# If AIC and BIC are ambiguos: let AIC decide
+	# If AIC and BIC are ambiguous: let AIC decide
 	if (length(which(f$rel.aic < .01)) > 1 & length(which(f$rel.bic < .01)) > 1) {
 		m <- rownames(f)[which.min(f$rel.aic)]
 	} else {

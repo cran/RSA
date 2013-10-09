@@ -7,7 +7,8 @@
 \arguments{
   \item{x}{RSA object}
 
-  \item{type}{One of: "syntax", "coef", "R2"}
+  \item{type}{One of: "syntax", "coef", "R2", "R2.adj",
+  "free", "summary"}
 
   \item{model}{A string specifying the model; defaults to
   "full"}

@@ -9,12 +9,40 @@
 #' @export
 #' @param x An RSA object
 #' @param verbose Should the summary be printed?
+#' @param plot Should the comparison be plotted (using the \code{\link{modeltree}} function)?
 
 
+compare <- function(x, verbose=TRUE, plot=FALSE) {
+	
+	## internal helper function: compare models
+	# mL = model list
+	cModels <- function(mL, set, free.max) {
+		aL1 <- anovaList(mL)
+		if (aL1$n.mods > 1 & "full" %in% names(mL)) {
+			n <- nobs(aL1$models[["full"]])
+			a1 <- cbind(aL1$ANOVA, plyr::ldply(aL1$models, function(X) {
+				F <- fitmeasures(X)
+				R <- inspect(X, "r2")
+				names(R) <- "R2"
+				k <- free.max - F["df"]				
+				R2.p <- ifelse(k==0,
+					NA,
+					pf(((n-k-1)*R)/(k*(1-R)), k, n-k-1, lower.tail=FALSE))
+				names(R2.p) <- "R2.p"
+				return(c(F[c("cfi", "tli", "rmsea", "srmr")], R, R2.p))
 
-
-compare <- function(x, verbose=TRUE) {
-	library(plyr)
+			}))
+			a1 <- a1[, !grepl(".id", colnames(a1))]
+			a1$k <- free.max - a1$Df
+			a1$R2.adj <- 1 - ((1-a1$R2))*((n-1)/(n-a1$k-1))
+			a1$delta.R2 <- c(NA, a1$R2[1:(nrow(a1)-1)] - a1$R2[2:(nrow(a1))])			
+			a1$model <- rownames(a1)
+			a1$set <- set
+			return(a1)
+		}
+	}
+	
+	
 	
 	with(x$models, {
 	
@@ -29,87 +57,39 @@ compare <- function(x, verbose=TRUE) {
 			cat("-------------------------------------------------------------------------\n")
 		}
 	
-		aL1 <- anovaList(list(cubic=cubic, full=full, IA=IA, additive=additive, diff=diff, null=null))
-		if (aL1$n.mods > 1) {
-			if (verbose==TRUE) {
-				cat("Testing directed difference models: Interaction, additive main effects, difference model :\n")
-				cat("-------------------------------------------------------------------------\n")
-			}
-			a1 <- cbind(aL1$ANOVA, ldply(aL1$models, function(X) {
-				F <- fitmeasures(X)
-				R <- inspect(X, "r2")
-				names(R) <- "R2"
-				n <- nobs(X)
-				k <- free.max - F["df"]
-				
-				R2.p <- ifelse(k==0,
-					NA,
-					pf(((n-k-1)*R)/(k*(1-R)), k, n-k-1, lower.tail=FALSE))
-				names(R2.p) <- "R2.p"
-				return(c(F[c("cfi", "tli", "rmsea", "srmr")], R, R2.p))
-
-			}))
-			a1 <- a1[, !grepl(".id", colnames(a1))]
-			a1$k <- free.max - a1$Df
-			a1$R2.adj <- 1 - ((1-a1$R2))*((nobs(full)-1)/(nobs(full)-a1$k-1))
-			a1$delta.R2 <- c(NA, a1$R2[1:(nrow(a1)-1)] - a1$R2[2:(nrow(a1))])
-			if (verbose==TRUE) print(round(a1, 3))
-			res <- a1
+		res1 <- cModels(list(cubic=cubic, full=full, IA=IA, additive=additive, diff=diff, null=null), set="directed", free.max)
+		if (verbose==TRUE & !is.null(res1)) {
+			cat("Testing directed difference models: Interaction, additive main effects, difference model :\n")
+			cat("-------------------------------------------------------------------------\n")
+			print(round(res1[, 1:16], 3))
+		}
+			
+		res2 <- cModels(list(cubic=cubic, full=full, SRRR=SRRR, SRSD=SRSD, SSD=SSD, sqdiff=sqdiff, null=null), set="flat_sq", free.max)
+		if (verbose==TRUE & !is.null(res2)) {
+			cat("\n\nTesting 'flat ridge' discrepancy models against SRRR and full polynomial model:\n")
+			cat("-------------------------------------------------------------------------\n")
+			print(round(res2[, 1:16], 3))
 		}
 	
-		aL2 <- anovaList(list(cubic=cubic, full=full, SRSD=SRSD, SSD=SSD, sqdiff=sqdiff, null=null))
-		if (aL2$n.mods > 1) {
-			if (verbose==TRUE) {
-				cat("\n\nTesting 'flat ridge' discrepancy models against full polynomial model:\n")
-				cat("-------------------------------------------------------------------------\n")
-			}
-			a2 <- cbind(aL2$ANOVA, ldply(aL2$models, function(X) {
-				F <- fitmeasures(X)
-				R <- inspect(X, "r2")
-				names(R) <- "R2"
-				n <- nobs(X)
-				k <- free.max - F["df"]
-				R2.p <- ifelse(k==0,
-					NA,
-					pf(((n-k-1)*R)/(k*(1-R)), k, n-k-1, lower.tail=FALSE))
-				names(R2.p) <- "R2.p"
-				return(c(F[c("cfi", "tli", "rmsea", "srmr")], R, R2.p))
-			}))
-			a2 <- a2[, !grepl(".id", colnames(a2))]
-			a2$k <- free.max - a2$Df
-			a2$R2.adj <- 1 - ((1-a2$R2))*((nobs(full)-1)/(nobs(full)-a2$k-1))
-			a2$delta.R2 <- c(NA, a2$R2[1:(nrow(a2)-1)] - a2$R2[2:(nrow(a2))])
-			if (verbose==TRUE) print(round(a2, 3))
-			res <- rbind(res, a2)
+		res3 <- cModels(list(cubic=cubic, full=full, SRRR=SRRR, SRR=SRR, RR=RR, sqdiff=sqdiff, null=null), set="RR", free.max)
+		if (verbose==TRUE & !is.null(res3)) {
+			cat("\n\nTesting 'rising ridge' against full polynomial model:\n")
+			cat("-------------------------------------------------------------------------\n")
+			print(round(res3[, 1:16], 3))
 		}
 		
-		aL2b <- anovaList(list(cubic=cubic, full=full, RR=RR, sqdiff=sqdiff, null=null))
-		if (aL2b$n.mods > 1) {
-			if (verbose==TRUE) {
-				cat("\n\nTesting 'rising ridge' against full polynomial model:\n")
-				cat("-------------------------------------------------------------------------\n")
-			}
-			a2 <- cbind(aL2b$ANOVA, ldply(aL2b$models, function(X) {
-				F <- fitmeasures(X)
-				R <- inspect(X, "r2")
-				names(R) <- "R2"
-				n <- nobs(X)
-				k <- free.max - F["df"]
-				R2.p <- ifelse(k==0,
-					NA,
-					pf(((n-k-1)*R)/(k*(1-R)), k, n-k-1, lower.tail=FALSE))
-				names(R2.p) <- "R2.p"
-				return(c(F[c("cfi", "tli", "rmsea", "srmr")], R, R2.p))
-			}))
-			a2 <- a2[, !grepl(".id", colnames(a2))]
-			a2$k <- free.max - a2$Df
-			a2$R2.adj <- 1 - ((1-a2$R2))*((nobs(full)-1)/(nobs(full)-a2$k-1))
-			a2$delta.R2 <- c(NA, a2$R2[1:(nrow(a2)-1)] - a2$R2[2:(nrow(a2))])
-			if (verbose==TRUE) print(round(a2, 3))
-			res <- rbind(res, a2)
+		## compute additional comparisons
+		res4 <- cModels(list(full=full, SRR=SRR, SSD=SSD), set="SRR_SSD", free.max)
+		if (verbose==TRUE & !is.null(res4)) {
+			cat("\n\nTesting transition from SRR to SSD model (i.e., removing the mean level effect from SRR):\n")
+			cat("-------------------------------------------------------------------------\n")
+			print(round(res4[, 1:16], 3))
 		}
+		reslist <- list(res1, res2, res3, res4)
+		res <- plyr::rbind.fill(reslist[!sapply(reslist, is.null)])
 	}
-	
+		
+		
 	
 	aL3 <- anovaList(list(absunc=absunc, absdiff=absdiff))
 	if (aL3$n.mods > 1) {
@@ -119,7 +99,7 @@ compare <- function(x, verbose=TRUE) {
 			cat("-------------------------------------------------------------------------\n")
 		}
 		free.max2 <- getFreeParameters(absunc)
-		a3 <- cbind(aL3$ANOVA, ldply(aL3$models, function(X) {
+		a3 <- cbind(aL3$ANOVA, plyr::ldply(aL3$models, function(X) {
 			F <- fitmeasures(X)
 			R <- inspect(X, "r2")
 			names(R) <- "R2"
@@ -134,7 +114,15 @@ compare <- function(x, verbose=TRUE) {
 		a3$R2.adj <- 1 - ((1-a3$R2))*((nobs(absunc)-1)/(nobs(absunc)-a3$k-1))
 		a3$delta.R2 <- c(NA, a3$R2[1:(nrow(a3)-1)] - a3$R2[2:(nrow(a3))])
 		if (verbose==TRUE) print(round(a3, 3))
+		a3$model <- rownames(a3)
+		a3$set <- "abs"
 		res <- rbind(res, a3)
+	}
+	
+	class(res) <- c("data.frame", "cRSA")
+	
+	if (plot==TRUE) {
+		modeltree(res)
 	}
 	
 	invisible(res)

@@ -2,10 +2,9 @@
 \alias{RSA}
 \title{Performs several RSA model tests on a data set with two predictors}
 \usage{
-  RSA(formula, data = NULL, center = FALSE, scale = FALSE,
-    na.rm = FALSE, out.rm = TRUE, breakline = FALSE,
-    models = "default", cubic = FALSE, verbose = TRUE,
-    control.variables = c(), ...)
+RSA(formula, data = NULL, center = FALSE, scale = FALSE, na.rm = FALSE,
+  out.rm = TRUE, breakline = FALSE, models = "default", cubic = FALSE,
+  verbose = TRUE, control.variables = c(), ...)
 }
 \arguments{
   \item{formula}{A formula in the form \code{z ~ x*y},
@@ -16,10 +15,16 @@
   \item{data}{A data frame with the variables}
 
   \item{center}{Should predictor variables be centered on
-  the sample mean before analyses?}
+  \emph{each variable's} sample mean before analyses? You
+  should think carefully about this option, as different
+  centering of the predictor variables can affect the
+  commensurability of the predictor scales.}
 
-  \item{scale}{Should predictor variables be scaled to SD =
-  1 before analyses?}
+  \item{scale}{Should predictor variables be scales on the
+  SD of \emph{each variable} before analyses? You should
+  think carefully about this option, as different scaling
+  of the predictor variables can affect the
+  commensurability of the predictor scales.}
 
   \item{na.rm}{Remove missings before proceeding?}
 
@@ -29,17 +34,19 @@
   \item{breakline}{Should the breakline in the
   unconstrained absolute difference model be allowed (the
   breakline is possible from the model formulation, but
-  empirically rather unrealistic ...)}
+  empirically rather unrealistic ...). Defaults to
+  \code{FALSE}}
 
   \item{verbose}{Should additional information during the
   computation process be printed?}
 
   \item{models}{A vector with names of all models that
-  should be computed. Should be any from c("absdiff",
+  should be computed. Should be any from \code{c("absdiff",
   "absunc", "diff", "additive", "IA", "sqdiff", "RR",
-  "SSD", "SRSD", "full", "null"). For \code{models="all"},
-  all models are computed, for \code{models="default"} all
-  models besides absolute difference models are computed.}
+  "SSD", "SRSD", "full", "null", "onlyx", "onlyy")}. For
+  \code{models="all"}, all models are computed, for
+  \code{models="default"} all models besides absolute
+  difference models are computed.}
 
   \item{cubic}{Should a cubic model with the additional
   terms Y^3, XY^2, YX^2, and X^3 be included?}
@@ -50,25 +57,27 @@
   them"). No interactions with the other variables are
   modeled.}
 
-  \item{...}{Additional parameters passed to the lavaan sem
-  function. For example: \code{se="boot"}}
+  \item{...}{Additional parameters passed to the
+  \code{lavaan} \code{\link{sem}} function. For example,
+  you can obtained bootstrapped standard errors by setting
+  \code{se="boot"}.}
 }
 \description{
-  Performs several RSA model tests on a data set with two
-  predictors
+Performs several RSA model tests on a data set with two
+predictors
 }
 \details{
-  You can also fit binary outcome variables with a probit
-  link function. For that purpose, the response variable
-  has to be defined as "ordered": \code{r1 <- RSA(Z.binary
-  ~ X*Y, dat, ordered="Z.binary")} (for more details see
-  the help file of the \code{sem} function in the
-  \code{lavaan} package.). The results can also be plotted
-  with probabilities on the z axis using the probit link
-  function: \code{plot(r1, link="probit", zlim=c(0, 1),
-  zlab="Probability")}. \code{lavaan} at the moment only
-  supports a probit link function for binary outcomes, not
-  a logit link.
+You can also fit binary outcome variables with a probit
+link function. For that purpose, the response variable has
+to be defined as "ordered": \code{r1 <- RSA(Z.binary ~ X*Y,
+dat, ordered="Z.binary")} (for more details see the help
+file of the \code{sem} function in the \code{lavaan}
+package.). The results can also be plotted with
+probabilities on the z axis using the probit link function:
+\code{plot(r1, link="probit", zlim=c(0, 1),
+zlab="Probability")}. \code{lavaan} at the moment only
+supports a probit link function for binary outcomes, not a
+logit link.
 }
 \examples{
 # Compute response surface from a fake data set
@@ -112,7 +121,7 @@ plot(r.m, model="RR", xlab="Explicit power motive",
 }
 }
 \seealso{
-  \code{\link{demoRSA}}, \code{\link{plotRSA}},
-  \code{\link{RSA.ST}}, \code{\link{confint.RSA}}
+\code{\link{demoRSA}}, \code{\link{plotRSA}},
+\code{\link{RSA.ST}}, \code{\link{confint.RSA}}
 }
 

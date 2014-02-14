@@ -1,6 +1,7 @@
 
 # helpers.R
 
+# compute interaction, squared, cubic, dummy variables, etc. for RSA
 add.variables <- function(formula, df) {
 	IV1 <- all.vars(formula)[2]
 	IV2 <- all.vars(formula)[3]
@@ -43,7 +44,20 @@ add.variables <- function(formula, df) {
 }
 
 
-sig2star <- function(val) {
+# simple wrapper: formats a number in f.2 format
+f2 <- function(x, digits=2, prepoint=0, skipZero=FALSE) {
+	
+	if (skipZero == TRUE) {zero <- "."} else {zero <- "0."}
+	
+	if (length(dim(x)) == 2) {
+		apply(x, 2, function(x2) {gsub("0.", zero, sprintf(paste("%",prepoint,".",digits,"f",sep=""), x2) , fixed=TRUE)})
+	} else {
+		gsub("0.", zero, sprintf(paste("%",prepoint,".",digits,"f",sep=""), x) , fixed=TRUE)
+	}
+}
+
+# converts p values in stars
+p2star <- function(val) {
 	
 	res <- val
 	
@@ -59,6 +73,13 @@ sig2star <- function(val) {
 	return(res)
 }
 
+# nicely formats a p-value
+p0 <- function(x) {
+	if (is.na(x)) return("NA")
+	if (x >= .001) return(paste0("p = ", f2(x, 3, skipZero=TRUE)))
+	if (x <  .001) return("p < .001")	
+}
+p <- Vectorize(p0)
 
 # returns number of maximum free parameters of a regression model
 getFreeParameters <- function(model) {
@@ -119,6 +140,11 @@ getIntersect <- function(b0=0, x=0, y=0, x2=0, xy=0, y2=0, p0, p1, xlim=c(-2, 2)
 
 model <- function(x, model="full") x$models[[model]]
 
+syntax <- function(x, model="full") cat(x$models[[model]]@Options$model)
+
+
+
+
 # transforms p-values to colors
 pRamp <- function(p, sig=.05, borderline=.10, bias=.8) {
 	# calculate bias that the color transition is at the borderline value
@@ -135,21 +161,6 @@ pRamp <- function(p, sig=.05, borderline=.10, bias=.8) {
 	}
 	return(p2)
 }
-
-
-
-# simple wrapper: formats a number in f.2 format
-f2 <- function(x, digits=2, prepoint=0, skipZero=FALSE) {
-	
-	if (skipZero == TRUE) {zero <- "."} else {zero <- "0."}
-	
-	if (length(dim(x)) == 2) {
-		apply(x, 2, function(x2) {gsub("0.", zero, sprintf(paste("%",prepoint,".",digits,"f",sep=""), x2) , fixed=TRUE)})
-	} else {
-		gsub("0.", zero, sprintf(paste("%",prepoint,".",digits,"f",sep=""), x) , fixed=TRUE)
-	}
-}
-
 
 
 # helper function: find closest value in vector
@@ -189,4 +200,39 @@ predictRSA <- function(object, X, Y, model="full") {
 	# compute predicted value
 	Z <- b0 + colSums(C*t(cbind(X, Y, X^2, Y^2, X*Y, 0, 0, 0, X^3, X*Y^2, X^2*Y, Y^3)))
 	return(Z)
+}
+
+
+# fills up the long edges of a polygon with intermediate points
+# If an edge is longer than minDist, new points re inserted.
+# @param x Vector of x values
+# @param y Vector of y values
+interpolatePolygon <- function(x, y, minDist, plot=FALSE) {
+	minDist <- minDist^2	# compare with squared x^2 + y^2 (faster)
+	interp <- data.frame()
+	pol <- data.frame(x, y)
+	colnames(pol) <- c("x", "y")
+	for (i in 1:(nrow(pol)-1)) {
+		# get distance
+		D <- (pol[i, 1] - pol[i+1, 1])^2 + (pol[i, 2] - pol[i+1, 2])^2
+		if (D > minDist) {
+			N <- ceiling(sqrt(D)/sqrt(minDist)) # number of interpolations
+			APPROX <- data.frame(
+				x = seq(pol[i, 1], pol[i+1, 1], length.out=N),
+				y = seq(pol[i, 2], pol[i+1, 2], length.out=N)
+			)
+			interp <- rbind(interp, APPROX)
+		} else if (D>0 & D <= minDist){
+			interp <- rbind(interp, pol[i, ])
+			if (i==1) colnames(interp) <- c("x", "y")
+		}
+	}
+	interp <- rbind(interp, pol[nrow(pol), ])
+	if (plot==TRUE) {
+		plot(pol, col="red")
+		points(interp[, 1], interp[, 2], col="green", pch=20)
+		lines(interp[, 1], interp[, 2], col="darkgreen")
+		text(pol, label=1:nrow(pol))
+	}
+	return(interp)
 }

@@ -3,6 +3,91 @@
 \encoding{UTF-8}
 
 
+\section{Version 0.9.3}{
+
+\subsection{New features and improvement}{
+	\itemize{
+		\item Added function \code{compare2} to compare two specific models.
+		\item \code{plotRSA}: parameter \code{project} can now plot axes ("LOC", "LOIC", "PA1", and "PA2") and the contour lines "contour" on the bottom of the cube. Example: \code{plot(r1, project=c("PA1", "contour"))}
+		\item Significantly reduced memory footprint of RSA objects, some speed improvements.
+		\item Plotting outliers is now more consistent.
+		\item The hull is plotted by default (whenever raw data is provided, either in an RSA-fit object, or in the \code{points$data} parameter)
+	}
+}
+\subsection{Bug Fixes}{
+	\itemize{
+		\item Removed unnecessary warning when plotting an interactive plot.
+	}
+}
+}
+
+\section{Version 0.9.2}{
+
+\subsection{User visible changes}{
+	\itemize{
+		\item Changed model abbreviations to be more consistent:
+			\itemize{
+				\item \code{sqdiff} to \code{SQD}
+				\item \code{SSD} to \code{SSQD}
+				\item \code{SRSD} to \code{SRSQD}
+			}
+	}
+}
+
+\subsection{New features}{
+	\itemize{
+		\item AICc (corrected AIC) is provided in addition in the \code{compare} function - this is better for small sample sizes
+		\item An AIC model comparison table can be printed (based on code by Jarrett Byrnes).
+	}
+}
+
+\subsection{Bug Fixes}{
+	\itemize{
+		\item Predicted value of stationary point now is reported in \code{summary}
+	}
+}
+}
+
+
+
+
+\section{Version 0.9.1}{
+
+
+\subsection{New features}{
+	\itemize{
+		\item New models: onlyx and onlyx2, resp. onlyy and onlyy2, test whether one of both predictors can be dropped altogether. mean model: b1 == b2, i.e., x and y are averaged and taken as a single predictor.
+		\item New parameter \code{add} in \code{RSA} function: The user can pass additional lavaan syntax that is added at the end of the generated syntax. For example: \code{RSA(z ~ x*y, data=df, add="abs(a4) > abs(a2); a1==0")}
+		\item Added the \code{compare2} function which compares two specific models, e.g. \code{compare2(r1, m1="SRR", m2="full")}. Attention: You must take care yourself that the compared models are nested! There is no automatic check, so you could, in principle, compare non-nested models. This is valid for AIC, BIC, CFI, TLI, and R2 indices, but *not* for the chi2-LR test!
+		\item plotRSA gained a \code{title} parameter: The main title of the plot.
+		\item New generic functions:
+		\itemize{
+			\item \code{fitted}: Return fitted values of a model, e.g.: \code{fitted(r1, model="RR")}
+			\item \code{residuals} (or \code{resid}): Return residuals of a fitted model, e.g.: \code{resid(r1, model="RR")}. For example, use the \code{qqPlot} function from the \code{car} package to display a qq-plot for regression diagnostics: qqPlot(resid(r2))
+		}
+	}
+}
+
+\subsection{Improvements}{
+	\itemize{
+		\item RSA(..., cubic=TRUE) now works more reliable. getPar(x, model="cubic") now returns the cubic parameters x^3, y^3, xy^2, and x^2y.
+		\item New function \code{summary}. Currently, it is simply an alias to \code{print}
+		\item \code{cex} parameter now applies to all text output of plotRSA.
+		\item If outliers are removed automatically, the \code{RSA} function prints the row numbers of the outliers.
+		\item Plotting of outliers (with \code{points=list(out.mark=TRUE)}) is more reliable.
+	}
+}
+
+
+\subsection{Bug Fixes}{
+	\itemize{
+		\item Removed the \code{error using packet 1 'x' and 'units' must have length > 0} bug in 3d plots
+	}
+}
+}
+
+
+
 \section{Version 0.9}{
 
 \subsection{New Features}{
@@ -122,7 +207,7 @@
 		\item Added parameter \code{project} to plotRSA. If \code{project=TRUE}, all lines which are defines by parameter \code{axes} are projected onto the floor of the cube.
 		\item \code{plotRSA} now can plot a convex hull around the data points (set \code{hull=TRUE}); both in \code{type="3d"} and type=\code{"contour"}
 		\item \code{plotRSA} now can plot the CI of the stationary point (set \code{SP.CI=TRUE}); only for \code{type="contour"}
-		\item All surface parameters now are also calculated for IA and sqdiff models
+		\item All surface parameters now are also calculated for IA and SD models
 		\item Added parameter \code{surface} to \code{plot.RSA}. \code{surface = "predict"} (default) plots the predicted surface. This is the known behavior of the function. \code{surface = "smooth"} plots a 2d-smoothed surface of the raw data (employs the \code{Tps} function of the \code{fields} package).
 	}
 }

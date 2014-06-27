@@ -31,7 +31,7 @@ add.variables <- function(formula, df) {
 	df[, paste0("W_", IV2)] <- df$W*df[, IV2]
 	
 	df$diff <- df[, IV2] - df[, IV1]
-	df$sqdiff <- df$diff^2
+	df$SD <- df$diff^2
 	df$absdiff <- abs(df$diff)
 	
 	# cubic terms
@@ -41,6 +41,41 @@ add.variables <- function(formula, df) {
 	df[, IV23] <- df[, IV2]^3
 	
 	return(df)
+}
+
+
+
+## internal helper function: compare models
+# mL = model list
+# set = label that is attached to the results
+cModels <- function(mL, set, free.max) {
+	aL1 <- anovaList(mL)
+	if (aL1$n.mods > 1 & "full" %in% names(mL)) {
+		n <- nobs(aL1$models[["full"]])
+		a1 <- cbind(aL1$ANOVA[, c(1, 4:7)], plyr::ldply(aL1$models, function(X) {
+			F <- fitmeasures(X)
+			R <- inspect(X, "r2")
+			names(R) <- "R2"
+			k <- free.max - F["df"]				
+			R2.p <- ifelse(k==0,
+				NA,
+				pf(((n-k-1)*R)/(k*(1-R)), k, n-k-1, lower.tail=FALSE))
+			names(R2.p) <- "R2.p"
+			
+			# compute AICc
+	      	AICc <- F["aic"] + 2*(k*(k+1))/(n-k-1)
+			names(AICc) <- NULL
+			
+			return(c(AICc=AICc, F[c("cfi", "tli", "srmr")], R, R2.p))
+		}))
+		a1 <- a1[, !grepl(".id", colnames(a1))]
+		a1$k <- free.max - a1$Df
+		a1$R2.adj <- 1 - ((1-a1$R2))*((n-1)/(n-a1$k-1))
+		a1$delta.R2 <- c(NA, a1$R2[1:(nrow(a1)-1)] - a1$R2[2:(nrow(a1))])			
+		a1$model <- rownames(a1)
+		a1$set <- set
+		return(a1)
+	}
 }
 
 
@@ -236,3 +271,4 @@ interpolatePolygon <- function(x, y, minDist, plot=FALSE) {
 	}
 	return(interp)
 }
+

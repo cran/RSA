@@ -5,13 +5,13 @@
 #' @details
 #' None so far.
 #'
-#' @S3method confint RSA
-#' @method confint RSA
+#' @export
 #' @aliases confint
 
 #' @param object An RSA object
 #' @param parm Not used.
 #' @param level The confidence level required.
+#' @param digits Number of digits the output is rounded to; if NA, digits are unconstrained
 #' @param model A string specifying the model; defaults to "full"
 #' @param method "standard" returns the CI for the lavaan object as it was computed. "boot" computes new percentile bootstrapped CIs.
 #' @param R If \code{method = "boot"}, R specifies the number of bootstrap samples
@@ -30,22 +30,22 @@
 #' df <- within(df, {
 #' 	diff <- x-y
 #' 	absdiff <- abs(x-y)
-#' 	sqdiff <- (x-y)^2
-#' 	z.sq <- sqdiff + rnorm(n, 0, err)
+#' 	SD <- (x-y)^2
+#' 	z.sq <- SD + rnorm(n, 0, err)
 #' })
 #' 
-#' r1 <- RSA(z.sq~x*y, df, models="SSD")
-#' (c1 <- confint(r1, model="SSD"))
+#' r1 <- RSA(z.sq~x*y, df, models="SSQD")
+#' (c1 <- confint(r1, model="SSQD"))
 #'
 #' # Dummy example with 10 bootstrap replications - better use >= 5000!
-#' (c2 <- confint(r1, model="SSD", method="boot", R=10))
+#' (c2 <- confint(r1, model="SSQD", method="boot", R=10))
 #' \dontrun{
 #' # multicore version
-#' confint(r1, model="SSD", R=5000, parallel="multicore", ncpus=2)
+#' confint(r1, model="SSQD", R=5000, parallel="multicore", ncpus=2)
 #' }
 
 
-confint.RSA <- function(object, parm, level = 0.95, ..., model = "full", method="standard", R = 5000) {	
+confint.RSA <- function(object, parm, level = 0.95, ..., model = "full", digits=3, method="standard", R = 5000) {	
 	method <- match.arg(method, c("standard", "boot"))
 	
 	if (method == "standard") {
@@ -55,6 +55,7 @@ confint.RSA <- function(object, parm, level = 0.95, ..., model = "full", method=
 		p1 <- p1[, c("ci.lower", "ci.upper", "pvalue")]
 		colnames(p1)[1:2] <- paste0(c((1-level)/2, 1-(1-level)/2)*100, "%")
 		attr(p1, "type") <- paste0("CIs extracted from lavaan object.")
+		if (!is.na(digits)) p1 <- round(p1, digits)
 		return(p1)
 	}
 	
@@ -79,6 +80,7 @@ confint.RSA <- function(object, parm, level = 0.95, ..., model = "full", method=
 	
 		CIs <- t(CIs)
 		attr(CIs, "type") <- paste0("Bootstrapped CIs from ", R, " replications.")
+		if (!is.na(digits)) CIs <- round(CIs, digits)
 		return(CIs)
 	}	
 }

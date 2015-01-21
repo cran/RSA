@@ -4,7 +4,7 @@
 #' Plots an RSA object, or a response surface with specified parameters
 #'
 #' @details
-#' Each plot type has its distinctive advantages. The two-dimensional contour plot gives a clear view of the position of the principal axes and the stationary point. The 3d plot gives a three dimensional impression of the surface, allows overplotting of the original data points (in case an RSA object is provided), and allows the interactive adjustment of regression weights in the \code{\link{demoRSA}} function. The interactive plot allows rotating and exploring a three-dimensional surface with the mouse (nice for demonstration purposes).
+#' Each plot type has its distinctive advantages. The two-dimensional contour plot gives a clear view of the position of the principal axes and the stationary point. The 3d plot gives a three dimensional impression of the surface, allows overplotting of the original data points (in case an RSA object is provided), and allows the interactive adjustment of regression weights in the \code{\link{RSA}} function. The interactive plot allows rotating and exploring a three-dimensional surface with the mouse (nice for demonstration purposes).
 #' If you want to export publication-ready plots, it is recommended to export it with following commands:
 #' \code{p1 <- plot(r1, bw=TRUE)
 #' trellis.device(device="cairo_pdf", filename="RSA_plot.pdf")
@@ -12,6 +12,8 @@
 #' dev.off()}
 #'
 #' @aliases plotRSA
+#'
+#' @importFrom aplpack compute.bagplot
 #'
 #' @export
 #' @param x Either an RSA object (returned by the \code{RSA} function), or the coefficient for the X predictor
@@ -42,7 +44,7 @@
 #' @param gridsize Number of grid nodes in each dimension
 #' @param bw Print surface in black and white instead of colors?
 #' @param legend Print color legend for z values?
-#' @param cex Font size factor for axes labels, axes titles, and the main title
+#' @param cex Font size factor for axes labels and axes titles
 #' @param type \code{3d} for 3d surface plot, \code{contour} for 2d contour plot, "interactive" for interactive rotatable plot. Shortcuts (i.e., first letter of string) are sufficient
 #' @param points A list of parameters which define the appearance of the raw scatter points: 
 #'	\itemize{
@@ -60,22 +62,26 @@
 #'				\item Example syntax: \code{plotRSA(r1, points=list(show=TRUE, out.mark=TRUE))}
 #'		}
 #'	}
+#' As a shortcut, you can also set \code{points=TRUE} to set the defaults.
 
 #' @param model If x is an RSA object: from which model should the response surface be computed?
 #' @param demo Do not change that parameter (internal use only)
 #' @param fit Do not change that parameter (internal use only)
-#' @param param Should the surface parameters a1 to a4 be shown on the plot? In case of a 3d plot a1 to a4 are printed on the upper left side; in case of a contour plot the principal axes are plotted.
+#' @param param Should the surface parameters a1 to a4 be shown on the plot? In case of a 3d plot a1 to a4 are printed on top of the plot; in case of a contour plot the principal axes are plotted.
+#' @param coefs Should the regression coefficients b1 to b5 be shown on the plot? (Only for 3d plot)
 #' @param axes A vector of strings specifying the axes that should be plotted. Can be any combination of c("LOC", "LOIC", "PA1", "PA2"). LOC = line of congruence, LOIC = line of incongruence, PA1 = first principal axis, PA2 = second principal axis
-#' @param project Should the LOC, LOIC, etc. (as defined in parameter \code{axes}) be also plotted as a projection on the bottom of the cube?
+#' @param project A vector of graphic elements that should be projected on the floor of the cube. Can include any combination of c("LOC", "LOIC", "PA1", "PA2", "contour", "points")
 #' @param maxlines Should the maximum lines be plotted? (red: maximum X for a given Y, blue: maximum Y for a given X). Works only in type="3d"
 #' @param link Link function to transform the z axes. Implemented are "identity" (no transformation; default), "probit", and "logit"
+#' @param suppress.surface Should the surface be suppressed (only for \code{type="3d"})? Useful for only showing the data points, or for didactic purposes (e.g., first show the cube, then fade in the surface).
+#' @param suppress.box Should the surrounding box be suppressed (only for \code{type="3d"})?
 #' @param border Should a thicker border around the surface be plotted? Sometimes this border leaves the surrounding box, which does not look good. In this case the border can be suppressed by setting \code{border=FALSE}.
 #' @param contour A list defining the appearance of contour lines (aka. height lines). show=TRUE: Should the contour lines be plotted on the 3d wireframe plot? (Parameter only relevant for \code{type="3d"}). color = "grey40": Color of the contour lines. highlight = c(): A vector of heights which should be highlighted (i.e., printed in bold). Be careful: the highlighted line is not necessarily exactly at the specified height; instead the nearest height line is selected.
 #' @param hull Plot a bag plot on the surface (This is a bivariate extension of the boxplot. 50\% of points are in the inner bag, 50\% in the outer region). See Rousseeuw, Ruts, & Tukey (1999).
 #' @param SP.CI Plot the CI of the stationary point (only relevant for \code{type="contour"})
 #' @param distance A vector of three values defining the distance of labels to the axes
 #' @param tck A vector of three values defining the position of labels to the axes (see ?wireframe)
-#' @param pal A palette for shading. You can use \code{\link{colorRampPalette}} to construct a color ramp, e.g. \code{plot(r.m, pal=colorRampPalette(c("darkgreen", "yellow", "darkred"))(20))}
+#' @param pal A palette for shading. You can use \code{\link{colorRampPalette}} to construct a color ramp, e.g. \code{plot(r.m, pal=colorRampPalette(c("darkgreen", "yellow", "darkred"))(20))}. If \code{pal="flip"}, the default palette is used, but reversed (so that red is on top and green on the bottom).
 #' @param pal.range Should the color range be scaled to the box (\code{pal.range = "box"}, default), or to the min and max of the surface (\code{pal.range = "surface"})? If set to "box", different surface plots can be compared along their color, as long as the zlim is the same for both.
 #' @param pad Pad controls the margin around the figure (positive numbers: larger margin, negative numbers: smaller margin)
 #'#' @param ... Additional parameters passed to the plotting function (e.g., sub="Title"). A useful title might be the R squared of the plotted model: \code{sub = as.expression(bquote(R^2==.(round(getPar(x, "r2", model="full"), 3))))}
@@ -91,8 +97,10 @@
 #' plotRSA(x=.314, y=-.118, x2=-.145, y2=-.102, xy=.299, b0=5.628)
 #' # Contour plot:
 #' plotRSA(x=.314, y=-.118, x2=-.145, y2=-.102, xy=.299, b0=5.628, type="c")
+#' \dontrun{
 #' # Interactive plot (try the mouse!):
 #' plotRSA(x=.314, y=-.118, x2=-.145, y2=-.102, xy=.299, b0=5.628, type="i")
+#' }
 #'
 #' # Plot response surface from an RSA object
 #' set.seed(0xBEEF)
@@ -126,25 +134,49 @@
 # rotation=list(x=-45, y=45, z=35), label.rotation=list(x=45, y=-25, z=94)
 # distance=c(1, 1, 1), tck=c(1, 1, 1)
 
-plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2y=0, y3=0, b0=0, type="3d", model="full", 
+plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2y=0, y3=0, b0=0, 
+	type="3d", model="full", 
 	xlim=NULL, ylim=NULL, zlim=NULL, 
 	xlab=NULL, ylab=NULL, zlab=NULL, main="",
 	surface="predict", lambda=NULL, 
+	suppress.surface=FALSE, suppress.box = FALSE,
 	rotation=list(x=-63, y=32, z=15), label.rotation=list(x=19, y=-40, z=92), 
-	gridsize=21, bw=FALSE, legend=TRUE, param=TRUE, 
-	axes=c("LOC", "LOIC", "PA1", "PA2"), project=FALSE, maxlines=FALSE,
+	gridsize=21, bw=FALSE, legend=TRUE, param=TRUE, coefs=FALSE,
+	axes=c("LOC", "LOIC", "PA1", "PA2"), 
+	project=c("contour"), maxlines=FALSE,
 	cex=1, cex.main=1, 
 	points = list(data=NULL, show=NA, value="raw", jitter=0, color="black", cex=.5, out.mark=FALSE),
-	demo=FALSE, fit=NULL, link="identity", 
-	tck=c(1.5, 1.5, 1.5), distance=c(1.3, 1.3, 1.4), border=TRUE, 
+	fit=NULL, link="identity", 
+	tck=c(1.5, 1.5, 1.5), distance=c(1.3, 1.3, 1.4), border=FALSE, 
 	contour = list(show=FALSE, color="grey40", highlight = c()),
 	hull=NA, SP.CI=FALSE, 
 	pal=NULL, pal.range="box", 
-	pad=0, ...) {
+	pad=0, demo=FALSE, ...) {
 	
-	if (!identical(xlim, ylim)) {warning("Axes dimensions are not equal. The visual diagonal is *not* the line of numerical congruence! Consider choosing identical values for xlim and ylim.")}
+	
+	# ---------------------------------------------------------------------
+	# Warnings and error handling ...
+	if (!identical(xlim, ylim)) {print("Note: Axes dimensions are not equal. The visual diagonal is *not* the line of numerical congruence! Consider choosing identical values for xlim and ylim.")}
+		
+	if (class(x) == "RSA") {
+		stop("If you want to plot an RSA object, please use plot(...); plotRSA should be only used when you directly provide the regression coefficients.")
+	}
+	
+	# remove LOC, LOIC etc. when they do not make sense.
+	if (any(c(x3, xy2, x2y, y3, w, wx, wy) != 0)) {
+		axes <- ""
+		project <- project[!project %in% c("PA1", "PA2", "LOC", "LOIC")]
+	}
+	
 	
 	# define the defaults
+	if (is.null(points) || (typeof(points) == "logical" && points == TRUE)) {
+		points <- list(show=TRUE, value="raw", jitter=0, color="black", cex=.5, out.mark=FALSE)
+	}
+	if (is.null(points) || (typeof(points) == "logical" && points == FALSE)) {
+		points <- list(show=FALSE)
+	}
+	
 	if (is.null(points$show)) points$show <- TRUE
 	if (is.na(points$show)) {
 		if (is.null(points$data)) {
@@ -224,20 +256,53 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 	if (!model %in% c("absunc", "absdiff")) {
 		if (!is.null(fit) & model != "cubic" & model != "null") {
 			SP <- RSA.ST(fit, model=model)
+			PAR <- getPar(fit, "coef", model=model)
+			
+			SP.text <- paste0("a", 1:4, ": ", f2(SP$SP$estimate, 2), p2star(SP$SP$p.value), collapse="   ")
+			
+			a4rs_par <- PAR[PAR$label == "a4.rescaled", ]
+			if (nrow(a4rs_par) == 1) {
+				SP.text <- paste0(SP.text, "/ a4(rescaled): ", f2(a4rs_par$est, 2), p2star(a4rs_par$pvalue))
+			}
+			SP.text <- paste0(SP.text, "\n")
+			
+			
+			meanlevel <- PAR[PAR$label == "meaneffect", ]
+			if (nrow(meanlevel) == 1) {
+				SP.text <- paste0(SP.text, "mean-level effect = ", f2(meanlevel$est, 2), p2star(meanlevel$pvalue), "    ")
+			}
+			
+			C_par <- PAR[PAR$label == "C", ]
+			if (nrow(C_par) == 1) {
+				SP.text <- paste0(SP.text, "C = ", f2(C_par$est, 2), p2star(C_par$pvalue), "    ")
+			}
+			
+			S_par <- PAR[PAR$label == "S", ]
+			if (nrow(S_par) == 1) {
+				SP.text <- paste0(SP.text, "S = ", f2(S_par$est, 2), p2star(S_par$pvalue), "    ")
+			}
+			
 		} else {
 			SP <- RSA.ST(x=x, y=y, xy=xy, x2=x2, y2=y2)
-		}
-		SP.text <- paste0("a", 1:4, ": ", f2(SP$SP$estimate, 2), p2star(SP$SP$p.value), collapse="    ")
+			SP.text <- paste0("a", 1:4, ": ", f2(SP$SP$estimate, 2), p2star(SP$SP$p.value), collapse="    ")			
+		}		
 	} else {
 		SP <- NULL
 		param <- FALSE
 		SP.text <- ""
 	}
 	
+	# Print coefs in 3d plot?
+	COEFS <- ""
+	if (coefs == TRUE) {
+		COEFS <- paste0("b1 = ", f2(x, 3), "\n", "b2 = ", f2(y, 3), "\n", "b3 = ", f2(x2, 3), "\n", "b4 = ", f2(xy, 3), "\n", "b5 = ", f2(y2, 3), "\n")
+	}
+	
 	
 	# ---------------------------------------------------------------------
 	# Calculate positions of raw points
 
+	xpoints <- ypoints <- zpoints <- NA
 	if (points$out.mark == TRUE & is.null(fit)) {
 		warning("Outliers can only be marked if an RSA-object is provided. Points are not plotted.")
 		points$show <- FALSE
@@ -297,8 +362,12 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 		new2$z <- b0 + colSums(C*t(new2[, c(1:5, 9:11, 15:18)]))
 	}
 	if (surface == "smooth") {
-		library(fields)
-		tpsfit <- Tps(points$data[, 1:2], points$data[, 3], scale.type="unscaled", lambda=lambda)
+		
+		if (!requireNamespace("fields", quietly = TRUE)) {
+			stop('`fields` package needed for smooth surfaces to work. Please install it with install.packages("fields")', call. = FALSE)
+		}
+		
+		tpsfit <- fields::Tps(points$data[, 1:2], points$data[, 3], scale.type="unscaled", lambda=lambda)
 		new2$z <- predict(tpsfit, new[, c("x", "y")])
 		param <- FALSE
 		axes <- ""
@@ -318,30 +387,56 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 
 	# determine zlim
 	if (!is.null(points$data) & demo==FALSE & is.null(zlim)) {
-		zlim <- c(min(min(new2$z, na.rm=TRUE), min(points$data[, 3], na.rm=TRUE)), max(max(new2$z, na.rm=TRUE), max(points$data[, 3], na.rm=TRUE)))
+		# old: set zlim according to fitted surface
+		#zlim <- c(min(min(new2$z, na.rm=TRUE), min(points$data[, 3], na.rm=TRUE)), max(max(new2$z, na.rm=TRUE), max(points$data[, 3], na.rm=TRUE)))
+		
+		# new: set zlim according to actual data range
+		zlim <- c(min(points$data[, 3], na.rm=TRUE), max(points$data[, 3], na.rm=TRUE))
 	} else {
 		if (is.null(zlim)) zlim <- c(min(new2$z), max(new2$z))
 	}
 	zlim.final <- zlim
 	
 	
+	# Catch border case: completely flat surface. Remove contour, redefine zlim
+	if (var(new2$z) == 0) {
+		contour$show <- FALSE
+		project <- project[-which(project == "contour")]
+		if (zlim[1] == 0 && zlim[2] == 0) zlim <- xlim
+	}
 	
-	## Plots
 	
+	## Define colors
+	
+	# flip palette?
+	flip <- FALSE
+	if (!is.null(pal) && pal=="flip") {
+		flip <- TRUE
+		pal <- NULL
+	}
 	if (bw == FALSE) {
+		
 		# RdYlGn palette
 		if (is.null(pal)) {
 			pal <- c("#A50026","#D73027","#F46D43","#FDAE61","#FEE08B","#FFFFBF","#D9EF8B","#A6D96A","#66BD63","#1A9850","#006837")
+			if (flip==TRUE) {pal <- rev(pal)}
 		}
+		
 		gridCol <- ifelse(contour$show == TRUE, "grey60", "grey30")
+		
+		LOC.col <- LOIC.col <- "blue"
+		PA1.col <- PA2.col <- "grey30"
 	} else {
 		if (is.null(pal)) {
 			pal <- colorRampPalette(c("#FFFFFF", "#AAAAAA", "#030303"), bias=2)(11)
+			if (flip==TRUE) {pal <- rev(pal)}
 		}
 		gridCol <- ifelse(contour$show == TRUE, "grey30", "grey30")
+		
+		LOC.col <- LOIC.col <- "black"
+		PA1.col <- PA2.col <- "grey50"
 	}
 	if (length(pal) < 2) {legend <- FALSE}
-		
 	
 	
 	
@@ -349,9 +444,7 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 	#  calculate bag plot: bag = outer, loop = inner
 	
 	if (hull==TRUE) {
-		library(aplpack)
-		
-		BAG <- compute.bagplot(xpoints, ypoints)
+		BAG <- aplpack::compute.bagplot(xpoints, ypoints)
 		
 		# close the polygon
 		h1 <- rbind(BAG$hull.bag, BAG$hull.bag[1, ])
@@ -379,35 +472,37 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 	## ======================================================================
 	
 	if (type == "interactive") {
-		library(rgl)
+		if (!requireNamespace("rgl", quietly = TRUE)) {
+			stop("`rgl` package needed for interactive plots. Please install it with install.packages('rgl').", call. = FALSE)
+		}
 		
 		P <- list(x=seq(xlim[1], xlim[2], length.out=grid), y=seq(ylim[1], ylim[2], length.out=grid))
 		DV2 <- matrix(new2$z, nrow=grid, ncol=grid, byrow=FALSE)
 		R <- range(DV2)
 		col2 <- as.character(cut(1:(R[2] - R[1] + 1), breaks=length(pal), labels=pal))
 		
-		open3d(cex=cex)
-		rgl.viewpoint(-30, -90)
-		rgl.light(theta = 0, phi = 90, viewpoint.rel = TRUE, ambient = "#FF0000", diffuse = "#FFFFFF", specular = "#FFFFFF")
-		persp3d(P$x, P$y, DV2, xlab = xlab, ylab = ylab, zlab = zlab, color=col2[DV2 - R[1] + 1], main=main)
+		rgl::open3d(cex=cex)
+		rgl::rgl.viewpoint(-30, -90, fov=0)
+		rgl::rgl.light(theta = 0, phi = 90, viewpoint.rel = TRUE, ambient = "#FF0000", diffuse = "#FFFFFF", specular = "#FFFFFF")
+		rgl::persp3d(P$x, P$y, DV2, xlab = xlab, ylab = ylab, zlab = zlab, color=col2[DV2 - R[1] + 1], main=main, ...)
 
 		if (contour$show == TRUE) {
 		    contours <- contourLines(P, z=DV2)
 		     for (i in 1:length(contours)) {
-				 with(contours[[i]], lines3d(x, y, level, col=contour$color))
+				 with(contours[[i]], rgl::lines3d(x, y, level, col=contour$color))
 			 }
 		 }
 		
 		if (points$show == TRUE) {
 			if (points$out.mark == FALSE) {
-				points3d(data.frame(xpoints, ypoints, zpoints), col=points$color)
+				rgl::points3d(data.frame(xpoints, ypoints, zpoints), col=points$color)
 			}
 			if (points$out.mark == TRUE) {
 				if (!is.null(fit)) {
 					colvec <- rep(points$color, nrow(fit$data))
 					colvec[fit$outliers] <- "red"
-					points3d(fit$data[, c(fit$IV1, fit$IV2, fit$DV)], col=colvec)
-					text3d(fit$data[fit$outliers, c(fit$IV1, fit$IV2, fit$DV)], col="red", texts="X")
+					rgl::points3d(fit$data[, c(fit$IV1, fit$IV2, fit$DV)], col=colvec)
+					rgl::text3d(fit$data[fit$outliers, c(fit$IV1, fit$IV2, fit$DV)], col="red", texts="X")
 				} else {
 					warning("Please provide an RSA-object to mark outliers.")
 				}
@@ -449,6 +544,7 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 			  if (length(project) > 0) {
 				  for (p in project) {
 					  if (p %in% c("LOC", "LOIC", "PA1", "PA2")) {
+						  if (is.null(axesList[[p]])) break;
 						  a0 <- RESCALE(getIntersect2(p0=axesList[[p]]$p0, p1=axesList[[p]]$p1))
 						  if (nrow(a0) <= 1) break;
 							  panel.3dscatter(x = a0$X, y = a0$Y, z = rep(RESCALE.Z(min(zlim.final) + .01), nrow(a0)), 
@@ -458,7 +554,29 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 					  }
 					  
 					  if (p == "hull") {
-					  	
+	  					  bag.rescale <- RESCALE(bag)
+						  panel.3dscatter(x = bag.rescale$X, y = bag.rescale$Y, z = rep(RESCALE.Z(min(zlim.final) + .01), nrow(bag.rescale)), 
+					  				xlim = xlim, ylim = ylim, zlim = zlim,
+		                            xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled, 
+									type="l", col.line="grey30", lty="dashed", lwd=2, ...)
+									
+  	  					  loop.rescale <- RESCALE(loop)
+  						  panel.3dscatter(x = loop.rescale$X, y = loop.rescale$Y, z = rep(RESCALE.Z(min(zlim.final) + .01), nrow(loop.rescale)), 
+  					  				xlim = xlim, ylim = ylim, zlim = zlim,
+  		                            xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled, 
+  									type="l", col.line="black", lty="dashed", lwd=2, ...)			
+										
+					  }
+					  
+					  if (p == "points") {
+  			              x2 <- xlim.scaled[1] + diff(xlim.scaled) * (x.points - xlim[1]) / diff(xlim)
+  			              y2 <- ylim.scaled[1] + diff(ylim.scaled) * (y.points - ylim[1]) / diff(ylim)
+						  z2 <- rep(RESCALE.Z(min(zlim.final) + .01), length(x2))
+						
+  			              panel.3dscatter(x = x2, y = y2, z = z2, 
+							  			xlim = xlim, ylim = ylim, zlim = zlim,
+  			                              xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled,
+  										  pch=20, col=points$color, cex=points$cex, ...)
 					  }
 				  }
 			  }
@@ -490,7 +608,7 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 			   # 2. Borders, back part
 			   
 			   
-					if (border==TRUE) {
+					if (border==TRUE & suppress.surface==FALSE) {
 						  # Make boundary of grid a bit thicker
 						  box1 <- new2[new2$y == max(new2$y), ]
 						  box2 <- new2[new2$y == min(new2$y), ]
@@ -509,13 +627,17 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 				
 					  # ---------------------------------------------------------------------
 					  # 3. the surface
+					  if (suppress.surface==FALSE) {
 						  panel.3dwire(x = x, y = y, z = z, xlim = xlim, ylim = ylim, zlim = zlim,
 		                           xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled,
 								   col=gridCol, lwd=0.3, ...)
 								   
+					   }
+								   
 								   
 					# ---------------------------------------------------------------------
 					# 4. plot of LOC and LOIC, and other axes
+					if (suppress.surface==FALSE) {
 						  for (a in axes) {
 							  if (!is.null(axesList[[a]])) {
 								  a0 <- RESCALE(getIntersect2(p0=axesList[[a]]$p0, p1=axesList[[a]]$p1))
@@ -525,10 +647,11 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 											type="l", col.line=axesList[[a]]$col, lty=axesList[[a]]$lty, lwd=2, ...)
 							  }
 						  }   
+					  }
 						  
   					# ---------------------------------------------------------------------
   					# 4b. plot of maximum lines
-					if (maxlines == TRUE) {
+					if (maxlines == TRUE & suppress.surface==FALSE) {
 						# maximum X for a given Y
   							  a0 <- RESCALE(getIntersect2(p0=-(C[1]/C[5]), p1=-((2*C[3])/C[5])))
   				              panel.3dscatter(x = a0$X, y = a0$Y, z = a0$Z, xlim = xlim, ylim = ylim, zlim = zlim,
@@ -550,23 +673,26 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 					# ---------------------------------------------------------------------
 					# 5. Borders, front part	  
 									   
-					   if (border==TRUE) {
+					   if (border==TRUE & suppress.surface==FALSE) {
  						  # plot the front boundary lines
  			              panel.3dscatter(x = x.box[box$side==2], y = y.box[box$side==2], z = z.box[box$side==2], xlim = xlim, ylim = ylim, zlim = zlim, xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled, type="l", col.line=gridCol, lwd=3, ...)
 						  panel.3dscatter(x = x.box[box$side==4], y = y.box[box$side==4], z = z.box[box$side==4], xlim = xlim, ylim = ylim, zlim = zlim, xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled, type="l", col.line=gridCol, lwd=3, ...)
 					   }
 										  
 						  if (param == TRUE) {
-							  grid.text(SPs, .02, .95, just="left", gp=gpar(cex=cex))
+							  grid::grid.text(SPs, .02, .95, just="left", gp=grid::gpar(cex=cex*0.8))
 						  }  
 						  
+						  if (coefs == TRUE) {
+							  grid::grid.text(COEFS, .80, .87, just="left", gp=grid::gpar(cex=cex*0.8))
+						  }  
 						  
 						
 						
 						# ---------------------------------------------------------------------
 						# 6a: The bag plot, if requested
 					
-						if (hull==TRUE) {	
+						if (hull==TRUE & suppress.surface==FALSE) {	
 							
 							# bag (= inner bag)
 							if (any(bag$X < xlim[1] | bag$X > xlim[2] | bag$Y < ylim[1] | bag$Y > ylim[2])) {
@@ -611,7 +737,7 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 					# ---------------------------------------------------------------------
 					# 7. plot contour lines on surface:
 					
-					if (contour$show == TRUE) {
+					if (contour$show == TRUE & suppress.surface==FALSE) {
 						# C0 keeps the contour lines and has been computed before
 							for (cL in C0$group) {
 							  C1 <- RESCALE(C0[C0$group==cL, c("X", "Y", "Z")])
@@ -653,11 +779,11 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 				}
 				
 				axesList <- list()
-				axesList[["LOC"]]  <- list(p0=0, p1=1, lty="solid", col="blue")
-				axesList[["LOIC"]] <- list(p0=0, p1=-1, lty="solid", col="blue")
+				axesList[["LOC"]]  <- list(p0=0, p1=1, lty="solid", col=LOC.col)
+				axesList[["LOIC"]] <- list(p0=0, p1=-1, lty="solid", col=LOIC.col)
 				if (x2 != y2) {
-					axesList[["PA1"]] <- list(p0=SP$p10, p1=SP$p11, lty="dotted", col="grey30")
-					axesList[["PA2"]] <- list(p0=SP$p20, p1=SP$p21, lty="dotted", col="grey30")	
+					axesList[["PA1"]] <- list(p0=SP$p10, p1=SP$p11, lty="dotted", col=PA1.col)
+					axesList[["PA2"]] <- list(p0=SP$p20, p1=SP$p21, lty="dotted", col=PA2.col)	
 				}			
 				
 				
@@ -674,29 +800,17 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 					CK <- list(labels=list(cex=cex))
 				}
 				
-			if (points$show == FALSE) {
-				p1 <- wireframe(z ~ x*y, new2,  drape=TRUE, 
-					scales 	= list(arrows = FALSE, cex=cex, col = "black", font = 1, tck=tck, distance=distance), 
-					xlab	= list(cex=cex, label=xlab, rot=label.rotation[["x"]]), 
-					ylab	= list(cex=cex, label=ylab, rot=label.rotation[["y"]]), 
-					zlab	= list(cex=cex, label=zlab, rot=label.rotation[["z"]]), zlim=zlim, 
-					main	= list(cex=cex.main, label=main),
-					screen	= rotation, 
-					at		= at, col.regions=pal, colorkey=CK, 
-					par.settings = list(
-						axis.line = list(col = "transparent"), 
-						layout.heights = list(top.padding=pad, bottom.padding=pad), 
-						layout.widths=list(left.padding=pad, right.padding=pad)), 
-					axes	= axes,
-					axesList= axesList, 
-					SPs		= SP.text, 
-					panel.3d.wireframe = mypanel2)
-								
-				#p1
-			} else {
+				# Define appearance of the surrounding box
+				axesCol <- "black"
+				boxCol <- "black"
 				
-				p1 <- wireframe(z ~ x*y, new2,  drape=TRUE, 
-					scales 	= list(arrows = FALSE, cex=cex, col = "black", font = 1, tck=tck, distance=distance), 
+				if (suppress.box == TRUE) {
+					axesCol <- "transparent"
+					boxCol <- NA
+				}
+				
+			p1 <- wireframe(z ~ x*y, new2,  drape=TRUE, 
+					scales 	= list(arrows = FALSE, cex=cex, col = axesCol, font = 1, tck=tck, distance=distance), 
 					xlab	= list(cex=cex, label=xlab, rot=label.rotation[["x"]]), 
 					ylab	= list(cex=cex, label=ylab, rot=label.rotation[["y"]]), 
 					zlab	= list(cex=cex, label=zlab, rot=label.rotation[["z"]]), zlim=zlim, 
@@ -706,13 +820,14 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 					par.settings = list(
 						axis.line = list(col = "transparent"), 
 						layout.heights = list(top.padding=pad, bottom.padding=pad), 
-						layout.widths=list(left.padding=pad, right.padding=pad)), 
+						layout.widths=list(left.padding=pad, right.padding=pad),
+						box.3d = list(col=boxCol)), 
 					axes	= axes,
 					axesList= axesList, 
-					SPs		= SP.text, 
+					SPs		= SP.text,
+					COEFS	= COEFS, 
 					panel.3d.wireframe = mypanel2,
 					x.points=xpoints, y.points=ypoints, z.points=zpoints)
-			}
 				
 	}  # of type == "3d"
 	
@@ -843,9 +958,13 @@ plot.RSA <- function(x, ...) {
 	if (is.null(extras[["zlab"]])) {extras[["zlab"]] <- fit$DV}
 		
 	extras$fit <- fit
-
-	if (is.null(extras$points)) {
+	
+	# define the defaults
+	if (is.null(extras$points) || (typeof(extras$points) == "logical" && extras$points == TRUE)) {
 		extras$points <- list(show=TRUE, value="raw", jitter=0, color="black", cex=.5, out.mark=FALSE)
+	}
+	if (is.null(extras$points) || (typeof(extras$points) == "logical" && extras$points == FALSE)) {
+		extras$points <- list(show=FALSE, value="raw", jitter=0, color="black", cex=.5, out.mark=FALSE)
 	}
 	if (is.null(extras$points$out.mark)) extras$points$out.mark <- FALSE
 

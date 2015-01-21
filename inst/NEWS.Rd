@@ -3,15 +3,74 @@
 \encoding{UTF-8}
 
 
+\section{Version 0.9.6}{
+
+This version has been uploaded to CRAN.
+
+\subsection{New features and improvements}{
+	\itemize{
+		\item Removed dependency \code{gridExtra}, added dependency \code{tcltk}
+		\item Fixed a bug in \code{demoRSA}
+		\item Added new demo: \code{demoSRRR}, which has surface parameteres as sliders.
+	}
+}
+}
+
+
+\section{Version 0.9.5}{
+
+\subsection{New features and improvements}{
+	\itemize{
+		\item Robustness against non-normality: Default estimator now is "MLR", which provides robust standard errors, a robust scaled test statistic, and can handle missing values.
+		\item Option \code{missing} in \code{RSA}. If missing values are present, by default \code{missing = "fiml"} is set, and a warning is issued that this is only valid if the data are missing completely at random (MCAR) or missing at random (MAR). Use \code{missing = "listwise"} to exclude missing values.
+		\item In the 3d plot, addtionally data points and hull can be projected on the floor. Example: \code{plot(r1, project=c("PA1", "contour", "points", "hull"))}
+		\item Use \code{pal="flip"} in plotRSA to reverse the default palette (green on bottom, red on top)
+		\item Use \code{coefs=TRUE} in plotRSA to print the regression coefficients in the top right corner of a 3d plot.
+		\item Added new demo: \code{demoSRR}, which has surface parameteres as sliders.
+	}
+}
+
+
+\subsection{Bug fixes/ Improvements}{
+	\itemize{
+		\item Internal restructuring to please CRAN; less dependencies (more imports) etc.
+		\item Added Travis CI to the Github repo
+		\item Catched some border cases in plotRSA (e.g., a flat surface led to problems)
+	}
+}
+}
+
+
+\section{Version 0.9.4}{
+
+\subsection{New features and improvements}{
+	\itemize{
+		\item The surface can be suppressed in the 3d plot: \code{suppress.surface=TRUE}. Useful for didactical purposes (first show empty cube, or cube with raw data points, then fade-in the regression surface.)
+		\item \code{summary} now also reports the R^2 of the selected model and the intercept.
+		\item Changed default for lavaan standard errors and test statistic to "robust"
+	}
+}
+\subsection{Bug Fixes}{
+	\itemize{
+		\item \code{summary}: The standardized beta weights are now correct.
+		\item \code{plotRSA}: The LOC and LOIC now are black in b/w mode
+		\item \code{plotRSA}: When attempting to plot an RSA object with \code{plotRSA} (instead of simply \code{plot(r1)}), an informative warning is shown.
+		\item New shortcut in \code{plotRSA}: Simply set \code{points=TRUE} (instead of defining the full list).
+		\item Fixed a bug in \code{demoRSA} which prevented plotting of RSA-objects.
+		\item Moved package \code{aplpack} into \code{Depends}, as plotting the hull now by default is turned on.
+	}
+}
+}
+
 \section{Version 0.9.3}{
 
-\subsection{New features and improvement}{
+\subsection{New features and improvements}{
 	\itemize{
 		\item Added function \code{compare2} to compare two specific models.
 		\item \code{plotRSA}: parameter \code{project} can now plot axes ("LOC", "LOIC", "PA1", and "PA2") and the contour lines "contour" on the bottom of the cube. Example: \code{plot(r1, project=c("PA1", "contour"))}
 		\item Significantly reduced memory footprint of RSA objects, some speed improvements.
 		\item Plotting outliers is now more consistent.
-		\item The hull is plotted by default (whenever raw data is provided, either in an RSA-fit object, or in the \code{points$data} parameter)
+		\item The hull is plotted by default (whenever raw data is provided, either in an RSA-fit object, or in the \code{points\$data} parameter)
 	}
 }
 \subsection{Bug Fixes}{

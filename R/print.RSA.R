@@ -8,9 +8,16 @@ print.RSA <- function(x, ..., model="full", digits=3) {
 #' @method summary RSA
 summary.RSA <- function(object, ..., model="full", digits=3) {
 	x <- object
+	
+	# Print model summary, also show package version
+	if(!exists("meta") || is.null(meta)) meta <- packageDescription("RSA")
+	cat(sprintf("RSA output (package version %s)", meta$Version))
+	cat("\n===========================================\n\n")
+	
 	with(x, {
 		
 		eff <- getPar(x, model=model, standardized=TRUE)
+		eff <- eff[order(eff$label), ]
 		
 		if (!model %in% c("cubic", "absunc", "absdiff")) {
 			ST <- RSA.ST(x, model=model)
@@ -35,23 +42,35 @@ summary.RSA <- function(object, ..., model="full", digits=3) {
 	
 	F <- LM$fstatistic
 	p.model <- 1-pf(F[1], F[2], F[3])
-	cat(paste0("Test on model significance: R2 = ", round(r2.model, 3), ", ", p(p.model), "\n"))
-		
+	cat(paste0("Test on model significance: R^2 = ", round(r2.model, 3), ", ", p(p.model), "\n"))
+	
+	if (model != "full") {
+		cat(paste0("\nIs the selected model <", model, "> significant?\n----------------------------\n"))
+		F <- fitmeasures(x$models[[model]])
+		R <- inspect(x$models[[model]], "r2")
+		n <- lavaan::nobs(x$models[[model]])
+		k <- F["baseline.df"] - F["df"]				
+		R2.p <- ifelse(k==0, NA, pf(((n-k-1)*R)/(k*(1-R)), k, n-k-1, lower.tail=FALSE))
+		cat(paste0("Test on model significance: R^2 = ", round(R, 3), ", ", p0(R2.p), "\n"))
+	}
+
+	cat(paste0("\n\nNumber of obervations: n = ", nobs(x$models[[model]]), "\n----------------------------\n"))
 
 	cat(paste0("\n\nRegression coefficients for model <", model, ">\n----------------------------\n"))
 	if (model != "cubic") {
-		coef.sel <- paste0("b", 1:5)
+		coef.sel <- paste0("b", 0:5)
 	} else {
-		coef.sel <- paste0("b", c(1:5, 9:12))
+		coef.sel <- paste0("b", c(0:5, 9:12))
 	}
+	
 	RC <- eff[eff$label %in% coef.sel, c(1:3, 6:7)]
 	RC[, 2:5] <- round(RC[, 2:5], digits)
-	RC$beta <- round(eff[eff$label %in% coef.sel, "std.lv"], digits)
+	RC$beta <- round(eff[eff$label %in% coef.sel, "std.all"], digits)
 	RC$pvalue <- p(eff[eff$label %in% coef.sel, "pvalue"])
 	RC$sig <- p2star(eff[eff$label %in% coef.sel, "pvalue"])
 	print(RC)	
 	
-	if (!model %in% c("diff", "mean", "onlyx", "onlyy","onlyx2", "onlyy2", "cubic")) {
+	if (!model %in% c("diff", "mean", "onlyx", "onlyy","onlyx2", "onlyy2", "additive", "cubic")) {
 		cat(paste0("\n\nEigenvalues and shape of surface for model <", model, ">\n----------------------------\n"))
 		cat("Eigenvalues:\n")
 		EV <- eff[eff$label %in% c("l1", "l2"), c("label", "est", "se", "ci.lower", "ci.upper")]
@@ -62,8 +81,8 @@ summary.RSA <- function(object, ..., model="full", digits=3) {
 		EV$label[1:2] <- c("lambda_1", "lambda_2")
 		print(EV)
 		
+		shape <- "undefined"
 		if (!any(EV$est == 0)) {
-			shape <- "undefined"
 			if (all(EV$est < 0)) shape <- "Dome shaped (stationary point = maximum response)"
 			if (all(EV$est > 0)) shape <- "Bowl shaped (stationary point = minimum response)"
 			if ((EV$est[1] > 0 & EV$est[2] < 0) | (EV$est[2] > 0 & EV$est[1] < 0)) shape <- "Saddle shaped"
@@ -93,7 +112,8 @@ summary.RSA <- function(object, ..., model="full", digits=3) {
 
 	
 		PA <- eff[eff$label %in% c("p10", "p11", "p20", "p21"), c(1:3, 6:7)]
-		if (nrow(PA) > 0) {
+		
+		if (nrow(PA) > 0 & (!any(EV$est == 0))) {
 			
 			cat(paste0("\n\nLocation of stationary point: ", shape, " for model <", model, ">\n----------------------------\n"))
 			cat(paste0(IV1, " = ", round(eff[eff$label %in% "X0", "est"], 3), "; ", IV2, " = ", round(eff[eff$label %in% "Y0", "est"], 3), "; predicted ", DV, " = ", round(predictRSA(x, eff[eff$label %in% "X0", "est"], eff[eff$label %in% "Y0", "est"], model=model), 3), "\n\n"))
@@ -115,6 +135,43 @@ summary.RSA <- function(object, ..., model="full", digits=3) {
 			cat("  --> Lateral shift of second PA from LOC at point (0; 0): C2 = ", round((-C["p20"])/(C["p21"] + 1), 3), "\n")
 		}
 	}
+	
+	
+	# ---------------------------------------------------------------------
+	# Tests for fit patterns
+	
+#	if (all(c("full", "weak", "strong") %in% names(models))) {
+# 		cat("\n\n\nTests for weak and strong fit patterns:\n----------------------------\n")
+#
+# 		eff.full <- getPar(x, model="full", standardized=TRUE)
+# 		coef.sel <- paste0("b", c(3, 5))
+# 		RC.full <- eff.full[eff.full$label %in% coef.sel, c(1:3, 6:7)]
+# 		RC.full[, 2:5] <- round(RC.full[, 2:5], digits)
+# 		RC.full$beta <- round(eff.full[eff.full$label %in% coef.sel, "std.all"], digits)
+# 		RC.full$pvalue <- p(eff.full[eff.full$label %in% coef.sel, "pvalue"])
+# 		RC.full$sig <- p2star(eff.full[eff.full$label %in% coef.sel, "pvalue"])
+# 		print(RC.full)
+#
+# 		cat("\n\nWeak fit pattern:\n")
+# 		aictab1 <- aictab(x, cand.set=c("full", "weak"))
+# 		aicdiff.weak <- aictab1$AICc[aictab1$Modnames == "weak"] - aictab1$AICc[aictab1$Modnames == "full"]
+#
+# 		print(aictab1)
+#
+# 		is.weak <- aicdiff.weak <= 0.001
+# 		cat(paste0("The data ", ifelse(is.weak==TRUE, "DO", "DO NOT"), " support a weak fit pattern."))
+#
+# 		if (is.weak == TRUE) {
+# 			cat("\n\nStrong fit pattern:\n")
+# 			aictab2 <- aictab(x, cand.set=c("weak", "strong"))
+# 			ctab2 <- compare2(x, m1="weak", m2="strong", verbose=FALSE)
+# 			print(round(ctab2[, 1:13], 3))
+# 			aicdiff.weak <- aictab1$AICc[aictab1$Modnames == "weak"] - aictab1$AICc[aictab1$Modnames == "full"]
+# 			cat(paste0("The data ", ifelse(ctab2["strong", "Pr(>Chisq)"] > .05, "DO", "DO NOT"), " support a strong fit pattern."))
+# 		}
+# 	}
+	
+	
 	
 	})
 }

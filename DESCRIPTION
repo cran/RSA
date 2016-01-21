@@ -2,8 +2,8 @@ Encoding: UTF-8
 Package: RSA
 Type: Package
 Title: Response Surface Analysis
-Version: 0.9.8
-Date: 2015-03-23
+Version: 0.9.9
+Date: 2016-01-21
 Author: Felix Schönbrodt
 Maintainer: Felix Schönbrodt <felix@nicebread.de>
 Description: Advanced response surface analysis. The main function RSA computes
@@ -15,11 +15,12 @@ Description: Advanced response surface analysis. The main function RSA computes
     eigenvalues) and provides standard, robust, or bootstrapped standard errors
     and confidence intervals for them.
 Suggests: fields, SDMTools, rgl, qgraph, AICcmodavg
-Depends: R (>= 2.15.0), lavaan (>= 0.5.11), ggplot2, lattice, tkrplot,
+Depends: R (>= 2.15.0), lavaan (>= 0.5.20), ggplot2, lattice, tkrplot,
         tcltk
 Imports: plyr, RColorBrewer, aplpack
 License: GPL (>= 2)
-Packaged: 2015-03-23 07:57:17 UTC; Felix
+RoxygenNote: 5.0.1
 NeedsCompilation: no
+Packaged: 2016-01-21 13:41:05 UTC; Felix
 Repository: CRAN
-Date/Publication: 2015-03-23 10:49:45
+Date/Publication: 2016-01-21 16:43:59

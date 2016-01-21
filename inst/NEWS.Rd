@@ -3,6 +3,25 @@
 \encoding{UTF-8}
 
 
+\section{Version 0.9.9}{
+
+
+\subsection{New features and improvements}{
+	\itemize{
+		\item Better documentation for RSA.ST function.
+	}
+}
+
+\subsection{Bug fixes}{
+	\itemize{
+		\item Made necessary changes due to lavaan update.
+		\item Fixed issue due to ggplot2 update.
+	}
+}
+
+}
+
+
 \section{Version 0.9.8}{
 
 

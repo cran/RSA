@@ -2,8 +2,8 @@ Encoding: UTF-8
 Package: RSA
 Type: Package
 Title: Response Surface Analysis
-Version: 0.9.9
-Date: 2016-01-21
+Version: 0.9.10
+Date: 2016-02-22
 Author: Felix Schönbrodt
 Maintainer: Felix Schönbrodt <felix@nicebread.de>
 Description: Advanced response surface analysis. The main function RSA computes
@@ -21,6 +21,6 @@ Imports: plyr, RColorBrewer, aplpack
 License: GPL (>= 2)
 RoxygenNote: 5.0.1
 NeedsCompilation: no
-Packaged: 2016-01-21 13:41:05 UTC; Felix
+Packaged: 2016-02-22 09:46:19 UTC; Felix
 Repository: CRAN
-Date/Publication: 2016-01-21 16:43:59
+Date/Publication: 2016-02-22 11:54:16

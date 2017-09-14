@@ -2,9 +2,12 @@ Encoding: UTF-8
 Package: RSA
 Type: Package
 Title: Response Surface Analysis
-Version: 0.9.10
-Date: 2016-02-22
-Author: Felix Schönbrodt
+Version: 0.9.11
+Date: 2017-09-12
+Authors@R: c(
+		person(c("Felix"), "Schönbrodt", email = "felix@nicebread.de", role = c("aut", "cre")),
+		person("Sarah", "Humberg", role = c("ctb"))
+	)
 Maintainer: Felix Schönbrodt <felix@nicebread.de>
 Description: Advanced response surface analysis. The main function RSA computes
     and compares several nested polynomial regression models (full polynomial,
@@ -19,8 +22,10 @@ Depends: R (>= 2.15.0), lavaan (>= 0.5.20), ggplot2, lattice, tkrplot,
         tcltk
 Imports: plyr, RColorBrewer, aplpack
 License: GPL (>= 2)
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1
 NeedsCompilation: no
-Packaged: 2016-02-22 09:46:19 UTC; Felix
+Packaged: 2017-09-13 06:50:07 UTC; felix
+Author: Felix Schönbrodt [aut, cre],
+  Sarah Humberg [ctb]
 Repository: CRAN
-Date/Publication: 2016-02-22 11:54:16
+Date/Publication: 2017-09-14 10:19:35 UTC

@@ -9,16 +9,18 @@ plotRSA(x = 0, y = 0, x2 = 0, y2 = 0, xy = 0, w = 0, wx = 0,
   model = "full", xlim = NULL, ylim = NULL, zlim = NULL, xlab = NULL,
   ylab = NULL, zlab = NULL, main = "", surface = "predict",
   lambda = NULL, suppress.surface = FALSE, suppress.box = FALSE,
-  rotation = list(x = -63, y = 32, z = 15), label.rotation = list(x = 19, y
-  = -40, z = 92), gridsize = 21, bw = FALSE, legend = TRUE,
-  param = TRUE, coefs = FALSE, axes = c("LOC", "LOIC", "PA1", "PA2"),
-  project = c("contour"), maxlines = FALSE, cex = 1, cex.main = 1,
-  points = list(data = NULL, show = NA, value = "raw", jitter = 0, color =
-  "black", cex = 0.5, out.mark = FALSE), fit = NULL, link = "identity",
-  tck = c(1.5, 1.5, 1.5), distance = c(1.3, 1.3, 1.4), border = FALSE,
-  contour = list(show = FALSE, color = "grey40", highlight = c()),
-  hull = NA, showSP = FALSE, showSP.CI = FALSE, pal = NULL,
-  pal.range = "box", pad = 0, demo = FALSE, ...)
+  suppress.grid = FALSE, suppress.ticklabels = FALSE, rotation = list(x =
+  -63, y = 32, z = 15), label.rotation = list(x = 19, y = -40, z = 92),
+  gridsize = 21, bw = FALSE, legend = TRUE, param = TRUE,
+  coefs = FALSE, axes = c("LOC", "LOIC", "PA1", "PA2"),
+  project = c("contour"), maxlines = FALSE, cex.tickLabel = 1,
+  cex.axesLabel = 1, cex.main = 1, points = list(data = NULL, show = NA,
+  value = "raw", jitter = 0, color = "black", cex = 0.5, out.mark = FALSE),
+  fit = NULL, link = "identity", tck = c(1.5, 1.5, 1.5),
+  distance = c(1.3, 1.3, 1.4), border = FALSE, contour = list(show =
+  FALSE, color = "grey40", highlight = c()), hull = NA, showSP = FALSE,
+  showSP.CI = FALSE, pal = NULL, pal.range = "box", pad = 0,
+  demo = FALSE, ...)
 }
 \arguments{
 \item{x}{Either an RSA object (returned by the \code{RSA} function), or the coefficient for the X predictor}
@@ -73,6 +75,10 @@ plotRSA(x = 0, y = 0, x2 = 0, y2 = 0, xy = 0, w = 0, wx = 0,
 
 \item{suppress.box}{Should the surrounding box be suppressed (only for \code{type="3d"})?}
 
+\item{suppress.grid}{Should the grid lines be suppressed (only for \code{type="3d"})?}
+
+\item{suppress.ticklabels}{Should the numbers on the axes be suppressed (only for \code{type="3d"})?}
+
 \item{rotation}{Rotation of the 3d surface plot (when type == "3d")}
 
 \item{label.rotation}{Rotation of the axis labls (when type == "3d")}
@@ -93,7 +99,9 @@ plotRSA(x = 0, y = 0, x2 = 0, y2 = 0, xy = 0, w = 0, wx = 0,
 
 \item{maxlines}{Should the maximum lines be plotted? (red: maximum X for a given Y, blue: maximum Y for a given X). Works only in type="3d"}
 
-\item{cex}{Font size factor for axes labels and axes titles}
+\item{cex.tickLabel}{Font size factor for tick labels}
+
+\item{cex.axesLabel}{Font size factor for axes labels}
 
 \item{cex.main}{Factor for main title size}
 
@@ -157,14 +165,13 @@ dev.off()}
 \examples{
 # Plot response surfaces from known parameters
 # example of Edwards (2002), Figure 3
+\dontrun{
 # Default: 3d plot:
 plotRSA(x=.314, y=-.118, x2=-.145, y2=-.102, xy=.299, b0=5.628)
 # Contour plot:
 plotRSA(x=.314, y=-.118, x2=-.145, y2=-.102, xy=.299, b0=5.628, type="c")
-\dontrun{
 # Interactive plot (try the mouse!):
 plotRSA(x=.314, y=-.118, x2=-.145, y2=-.102, xy=.299, b0=5.628, type="i")
-}
 
 # Plot response surface from an RSA object
 set.seed(0xBEEF)
@@ -188,10 +195,10 @@ r1 <- RSA(z.sq~x*y, df, models=c("SQD", "full", "IA"))
 plot(r1)	# default: model = "full"
 plot(r1, model="SQD", points=list(show=TRUE, value="predicted"))
 }
+}
 \references{
 Rousseeuw, P. J., Ruts, I., & Tukey, J. W. (1999). The Bagplot: A Bivariate Boxplot. The American Statistician, 53(4), 382-387. doi:10.1080/00031305.1999.10474494
 }
 \seealso{
 \code{\link{demoRSA}}, \code{\link{RSA}}
 }
-

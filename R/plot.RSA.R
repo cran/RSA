@@ -44,7 +44,8 @@
 #' @param gridsize Number of grid nodes in each dimension
 #' @param bw Print surface in black and white instead of colors?
 #' @param legend Print color legend for z values?
-#' @param cex Font size factor for axes labels and axes titles
+#' @param cex.tickLabel Font size factor for tick labels
+#' @param cex.axesLabel Font size factor for axes labels
 #' @param type \code{3d} for 3d surface plot, \code{contour} for 2d contour plot, "interactive" for interactive rotatable plot. Shortcuts (i.e., first letter of string) are sufficient
 #' @param points A list of parameters which define the appearance of the raw scatter points: 
 #'	\itemize{
@@ -75,6 +76,8 @@
 #' @param link Link function to transform the z axes. Implemented are "identity" (no transformation; default), "probit", and "logit"
 #' @param suppress.surface Should the surface be suppressed (only for \code{type="3d"})? Useful for only showing the data points, or for didactic purposes (e.g., first show the cube, then fade in the surface).
 #' @param suppress.box Should the surrounding box be suppressed (only for \code{type="3d"})?
+#' @param suppress.grid Should the grid lines be suppressed (only for \code{type="3d"})?
+#' @param suppress.ticklabels Should the numbers on the axes be suppressed (only for \code{type="3d"})?
 #' @param border Should a thicker border around the surface be plotted? Sometimes this border leaves the surrounding box, which does not look good. In this case the border can be suppressed by setting \code{border=FALSE}.
 #' @param contour A list defining the appearance of contour lines (aka. height lines). show=TRUE: Should the contour lines be plotted on the 3d wireframe plot? (Parameter only relevant for \code{type="3d"}). color = "grey40": Color of the contour lines. highlight = c(): A vector of heights which should be highlighted (i.e., printed in bold). Be careful: the highlighted line is not necessarily exactly at the specified height; instead the nearest height line is selected.
 #' @param hull Plot a bag plot on the surface (This is a bivariate extension of the boxplot. 50\% of points are in the inner bag, 50\% in the outer region). See Rousseeuw, Ruts, & Tukey (1999).
@@ -94,14 +97,13 @@
 #' @examples
 #' # Plot response surfaces from known parameters
 #' # example of Edwards (2002), Figure 3
+#' \dontrun{
 #' # Default: 3d plot:
 #' plotRSA(x=.314, y=-.118, x2=-.145, y2=-.102, xy=.299, b0=5.628)
 #' # Contour plot:
 #' plotRSA(x=.314, y=-.118, x2=-.145, y2=-.102, xy=.299, b0=5.628, type="c")
-#' \dontrun{
 #' # Interactive plot (try the mouse!):
 #' plotRSA(x=.314, y=-.118, x2=-.145, y2=-.102, xy=.299, b0=5.628, type="i")
-#' }
 #'
 #' # Plot response surface from an RSA object
 #' set.seed(0xBEEF)
@@ -124,6 +126,7 @@
 #' r1 <- RSA(z.sq~x*y, df, models=c("SQD", "full", "IA"))
 #' plot(r1)	# default: model = "full"
 #' plot(r1, model="SQD", points=list(show=TRUE, value="predicted"))
+#' }
 
 
 
@@ -140,12 +143,13 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 	xlim=NULL, ylim=NULL, zlim=NULL, 
 	xlab=NULL, ylab=NULL, zlab=NULL, main="",
 	surface="predict", lambda=NULL, 
-	suppress.surface=FALSE, suppress.box = FALSE,
+	suppress.surface=FALSE, suppress.box = FALSE, suppress.grid = FALSE,
+	suppress.ticklabels=FALSE,
 	rotation=list(x=-63, y=32, z=15), label.rotation=list(x=19, y=-40, z=92), 
 	gridsize=21, bw=FALSE, legend=TRUE, param=TRUE, coefs=FALSE,
 	axes=c("LOC", "LOIC", "PA1", "PA2"), 
 	project=c("contour"), maxlines=FALSE,
-	cex=1, cex.main=1, 
+	cex.tickLabel=1, cex.axesLabel=1, cex.main=1, 
 	points = list(data=NULL, show=NA, value="raw", jitter=0, color="black", cex=.5, out.mark=FALSE),
 	fit=NULL, link="identity", 
 	tck=c(1.5, 1.5, 1.5), distance=c(1.3, 1.3, 1.4), border=FALSE, 
@@ -171,6 +175,11 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 	
 	
 	# define the defaults
+	
+	if (!is.null(points$data)) {
+		points$data <- data.frame(points$data)	# a tibble causes an error ...
+	}
+	
 	if (is.null(points) || (typeof(points) == "logical" && points == TRUE)) {
 		points <- list(show=TRUE, value="raw", jitter=0, color="black", cex=.5, out.mark=FALSE)
 	}
@@ -358,7 +367,7 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 	new <- data.frame(x = rep(seq(xlim[1], xlim[2], length.out=grid), grid), y = rep(seq(ylim[1], ylim[2], length.out=grid), each=grid))
 	new2 <- add.variables(z~x+y, new)
 		
-	# calculate z values
+	# calculate z values of the surface
 	if (surface == "predict") {
 		new2$z <- b0 + colSums(C*t(new2[, c(1:5, 9:11, 15:18)]))
 	}
@@ -374,16 +383,29 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 		axes <- ""
 	}
 	
-	# impose link functions
+	# impose link functions, both to the surface and the raw values
 	logit <- function (x) {log(x/(1-x))}
 	invlogit <- function (x) {1/(1+exp(-x))}
 	link <- match.arg(link, c("identity", "logit", "probit"))
-	if (link == "probit") {
+	if (link == "probit") {	
+		# surface
 		z.trans <- 1.7 * new2$z
 		new2$z <- invlogit(z.trans)
+
+		# raw data points
+		if (points$value == "predicted") {
+			zpoints.trans <- 1.7 * zpoints
+			zpoints <- invlogit(zpoints.trans)
+		}
 	}
 	if (link == "logit") {
+		# surface
 		new2$z <- invlogit(new2$z)
+		
+		# raw data points
+		if (points$value == "predicted") {
+			zpoints <- invlogit(zpoints)
+		}
 	}
 
 
@@ -395,7 +417,8 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 		# new: set zlim according to actual data range
 		zlim <- c(min(points$data[, 3], na.rm=TRUE), max(points$data[, 3], na.rm=TRUE))
 	} else {
-		if (is.null(zlim)) zlim <- c(min(new2$z), max(new2$z))
+		if (is.null(zlim) & link != "probit") zlim <- c(min(new2$z), max(new2$z))
+		if (is.null(zlim) & link == "probit") zlim <- c(0, 1)
 	}
 	zlim.final <- zlim
 	
@@ -440,7 +463,9 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 	}
 	if (length(pal) < 2) {legend <- FALSE}
 	
-	
+	if (suppress.grid == TRUE) {
+		gridCol <- "transparent"
+	}
 	
 	# ---------------------------------------------------------------------
 	#  calculate bag plot: bag = outer, loop = inner
@@ -483,7 +508,7 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 		R <- range(DV2)
 		col2 <- as.character(cut(1:(R[2] - R[1] + 1), breaks=length(pal), labels=pal))
 		
-		rgl::open3d(cex=cex)
+		rgl::open3d(cex=cex.main)
 		rgl::rgl.viewpoint(-30, -90, fov=0)
 		rgl::rgl.light(theta = 0, phi = 90, viewpoint.rel = TRUE, ambient = "#FF0000", diffuse = "#FFFFFF", specular = "#FFFFFF")
 		rgl::persp3d(P$x, P$y, DV2, xlab = xlab, ylab = ylab, zlab = zlab, color=col2[DV2 - R[1] + 1], main=main, ...)
@@ -682,11 +707,11 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 					   }
 										  
 						  if (param == TRUE) {
-							  grid::grid.text(SPs, .02, .95, just="left", gp=grid::gpar(cex=cex*0.8))
+							  grid::grid.text(SPs, .02, .95, just="left", gp=grid::gpar(cex=cex.axesLabel*0.8))
 						  }  
 						  
 						  if (coefs == TRUE) {
-							  grid::grid.text(COEFS, .80, .87, just="left", gp=grid::gpar(cex=cex*0.8))
+							  grid::grid.text(COEFS, .80, .87, just="left", gp=grid::gpar(cex=cex.axesLabel*0.8))
 						  }  
 						  
 						
@@ -799,7 +824,7 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 				# define the appearance of the color legend
 				CK <- FALSE
 				if (legend == TRUE) {
-					CK <- list(labels=list(cex=cex))
+					CK <- list(labels=list(cex=cex.axesLabel))
 				}
 				
 				# Define appearance of the surrounding box
@@ -812,10 +837,10 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 				}
 				
 			p1 <- wireframe(z ~ x*y, new2,  drape=TRUE, 
-					scales 	= list(arrows = FALSE, cex=cex, col = axesCol, font = 1, tck=tck, distance=distance), 
-					xlab	= list(cex=cex, label=xlab, rot=label.rotation[["x"]]), 
-					ylab	= list(cex=cex, label=ylab, rot=label.rotation[["y"]]), 
-					zlab	= list(cex=cex, label=zlab, rot=label.rotation[["z"]]), zlim=zlim, 
+					scales 	= list(arrows = FALSE, cex=cex.tickLabel, col = axesCol, font = 1, tck=tck, distance=distance), 
+					xlab	= list(cex=cex.axesLabel, label=xlab, rot=label.rotation[["x"]]), 
+					ylab	= list(cex=cex.axesLabel, label=ylab, rot=label.rotation[["y"]]), 
+					zlab	= list(cex=cex.axesLabel, label=zlab, rot=label.rotation[["z"]]), zlim=zlim, 
 					main	= list(cex=cex.main, label=main),
 					screen	= rotation,
 					at		= at, col.regions=pal, colorkey=CK, 

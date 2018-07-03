@@ -2,11 +2,11 @@ Encoding: UTF-8
 Package: RSA
 Type: Package
 Title: Response Surface Analysis
-Version: 0.9.11
-Date: 2017-09-12
+Version: 0.9.12
+Date: 2018-07-03
 Authors@R: c(
-		person(c("Felix"), "Schönbrodt", email = "felix@nicebread.de", role = c("aut", "cre")),
-		person("Sarah", "Humberg", role = c("ctb"))
+		person(c("Felix"), "Schönbrodt", email = "felix@nicebread.de", role = c("cre", "aut")),
+		person("Sarah", "Humberg", role = c("aut"))
 	)
 Maintainer: Felix Schönbrodt <felix@nicebread.de>
 Description: Advanced response surface analysis. The main function RSA computes
@@ -17,15 +17,14 @@ Description: Advanced response surface analysis. The main function RSA computes
     many surface parameters (a1 to a4, principal axes, stationary point,
     eigenvalues) and provides standard, robust, or bootstrapped standard errors
     and confidence intervals for them.
-Suggests: fields, SDMTools, rgl, qgraph, AICcmodavg
-Depends: R (>= 2.15.0), lavaan (>= 0.5.20), ggplot2, lattice, tkrplot,
-        tcltk
-Imports: plyr, RColorBrewer, aplpack
+Suggests: fields, SDMTools, rgl, qgraph, AICcmodavg, tcltk
+Depends: R (>= 2.15.0), lavaan (>= 0.5.20), ggplot2, lattice
+Imports: plyr, RColorBrewer, aplpack, tkrplot
 License: GPL (>= 2)
 RoxygenNote: 6.0.1
 NeedsCompilation: no
-Packaged: 2017-09-13 06:50:07 UTC; felix
-Author: Felix Schönbrodt [aut, cre],
-  Sarah Humberg [ctb]
+Packaged: 2018-07-03 13:11:20 UTC; felix
+Author: Felix Schönbrodt [cre, aut],
+  Sarah Humberg [aut]
 Repository: CRAN
-Date/Publication: 2017-09-14 10:19:35 UTC
+Date/Publication: 2018-07-03 13:30:03 UTC

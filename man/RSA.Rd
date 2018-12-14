@@ -4,10 +4,11 @@
 \alias{RSA}
 \title{Performs several RSA model tests on a data set with two predictors}
 \usage{
-RSA(formula, data = NULL, center = FALSE, scale = FALSE, na.rm = FALSE,
-  out.rm = TRUE, breakline = FALSE, models = "default", cubic = FALSE,
-  verbose = TRUE, add = "", estimator = "MLR", se = "robust",
-  missing = NA, ..., control.variables = c())
+RSA(formula, data = NULL, center = FALSE, scale = FALSE,
+  na.rm = FALSE, out.rm = TRUE, breakline = FALSE,
+  models = "default", cubic = FALSE, verbose = TRUE, add = "",
+  estimator = "MLR", se = "robust", missing = NA, ...,
+  control.variables = c())
 }
 \arguments{
 \item{formula}{A formula in the form \code{z ~ x*y}, specifying the variable names used from the data frame, where z is the name of the response variable, and x and y are the names of the predictor variables.}
@@ -36,7 +37,7 @@ RSA(formula, data = NULL, center = FALSE, scale = FALSE, na.rm = FALSE,
 
 \item{se}{Type of standard errors. This parameter gets passed through to the \code{sem} function of the \code{lavaan} package. See options there. By default, robust SEs are computed. If you use \code{se="boot"}, \code{lavaan} provides CIs and p-values based on the bootstrapped standard error. If you use \code{confint(..., method="boot")}, in contrast, you get CIs and p-values based on percentile bootstrap (see also \code{\link{confint.RSA}}).}
 
-\item{missing}{Handling of missing values. By default (\code{NA}), Full Information Maximum Likelihood (FIML) is employed in case of missing values. If cases with missing values should be excluded, use \code{missing = "listwise"}.}
+\item{missing}{Handling of missing values (this parameter is passed to the \code{lavaan} \code{sem} function). By default (\code{missing=NA}), Full Information Maximum Likelihood (FIML) is employed in case of missing values. If cases with missing values should be excluded, use \code{missing = "listwise"}.}
 
 \item{...}{Additional parameters passed to the \code{lavaan} \code{\link{sem}} function.}
 

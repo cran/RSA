@@ -4,8 +4,18 @@
 \alias{RSA.ST}
 \title{Surface tests}
 \usage{
-RSA.ST(x = 0, y = 0, x2 = 0, xy = 0, y2 = 0, b0 = 0,
-  SE = NULL, COV = NULL, df = NULL, model = "full")
+RSA.ST(
+  x = 0,
+  y = 0,
+  x2 = 0,
+  xy = 0,
+  y2 = 0,
+  b0 = 0,
+  SE = NULL,
+  COV = NULL,
+  df = NULL,
+  model = "full"
+)
 }
 \arguments{
 \item{x}{Either an RSA object (returned by the \code{RSA} function), or the coefficient for the X predictor}
@@ -24,7 +34,7 @@ RSA.ST(x = 0, y = 0, x2 = 0, xy = 0, y2 = 0, b0 = 0,
 
 \item{COV}{Covariances between parameters. COV has to be a named vector with exactly four elements with the names of four specific covariances, e.g.: \code{COV=c(x_y=.1, x2_y2 = .2, x2_xy = .3, y2_xy = .4)}, where x_y is the covariance between x and y, and so on. All these covariances have to provided with exactly these names, otherwise the function will print an error.}
 
-\item{df}{Degrees of freedom for the calculation of a1 to a4 confidence intervals. The df are the residual dfs of the model (df = n - estimated parameters). For the full polynomial model, this is n - 6 in a regular regression (the following parameters are estimated: Intercept, x, y, xy, x2, y2). \code{df} should be a single number.}
+\item{df}{Degrees of freedom for the calculation of a1 to a4 confidence intervals. The df are the residual dfs of the model (df = n - estimated parameters). For the full second-order polynomial model, this is 'n - 6 - number of control variables' in a regular regression (the following parameters are estimated: Intercept, x, y, x2, xy, y2, all control variables). \code{df} should be a single number.}
 
 \item{model}{If x is an RSA object, this parameter specifies the model from which to extract the coefficients}
 }

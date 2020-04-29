@@ -58,6 +58,20 @@ anovaList <- function(modellist) {
     DF <- sapply(mods, fitmeasures, "df")
     mods <- mods[order(DF, decreasing = FALSE)]
 		
+    
+  # prevent lavaan error in case that some models (but not all) have scaled test statistics
+    
+    # detect such cases (condition copy-pasted from lav_test_LRT.R in lavaan)
+    mods.scaled <- unlist( lapply(mods, function(x) {
+      any(c("satorra.bentler", "yuan.bentler", "yuan.bentler.mplus", "mean.var.adjusted", "scaled.shifted") 
+          %in% unlist(sapply(slot(x, "test"), "[", "test")) ) }))
+    
+    # change internal label
+    if( ! ( all(mods.scaled) | !any(mods.scaled) ) ) {
+      mods[[ which(sapply(mods, fitmeasures, "df") == 0) ]]@test[[2]]$test <- mods[[ which(mods.scaled)[1] ]]@test[[2]]$test
+    } 
+
+    
 	pStr <- sapply(1:length(mods), function(x){ 
 		if(x==1) {
 			paste("mods[[",x,"]]",sep = "")
@@ -91,7 +105,7 @@ cModels <- function(mL, set, free.max) {
 			R <- inspect(X, "r2")
 			names(R) <- "R2"
 			n <- lavaan::nobs(X)
-			k <- free.max - F["df"]		
+			k <- free.max - F["df"] # number of parameters, including coefficients of control variables (if there are any)
 			
 			suppressWarnings({		
 				R2.p <- ifelse(k==0,
@@ -102,7 +116,8 @@ cModels <- function(mL, set, free.max) {
 			names(R2.p) <- "R2.p"
 			
 			# compute AICc
-	      	AICc <- F["aic"] + 2*(k*(k+1))/(n-k-1)
+			K <- k + 2  # number of parameters, including coefficients of control variables (if there are any), intercept and residual variance (thus the +2)
+	    AICc <- -2*F["logl"] + 2*K + 2*(K*(K+1))/(n-K-1)
 			names(AICc) <- NULL
 			
 			return(c(AICc=AICc, F[c("cfi", "srmr")], R, R2.p))
@@ -115,6 +130,48 @@ cModels <- function(mL, set, free.max) {
 		a1$set <- set
 		return(a1)
 	}
+}
+
+
+# internal helper function: F-test to compare R^2 difference between two nested models
+# x = output object of RSA()
+# unrestricted = name of unrestricted model (model with more estimated parameters)
+# restricted = name of restricted model (less estimated parameters); with default setting "interceptonly", the function will return R^2 and respective pvalue of the unrestricted model
+R2difftest <- function(x, unrestricted="", restricted="interceptonly"){
+  
+  n <- lavaan::nobs(x$models[[unrestricted]])
+  free.max <- getFreeParameters(x$models[[unrestricted]])
+  
+  Fu <- fitmeasures(x$models[[unrestricted]])
+  Ru <- inspect(x$models[[unrestricted]], "r2")
+  ku <- free.max - Fu["df"]
+  
+  if ( restricted=="interceptonly" ){
+    Rr <- 0
+    kr <- 0
+  } else {
+    Fr <- fitmeasures(x$models[[restricted]])
+    Rr <- inspect(x$models[[restricted]], "r2")
+    kr <- free.max - Fr["df"]
+  }
+  
+  suppressWarnings({		
+    R2.p <- ifelse(ku==kr,
+                   NA,
+                   pf( ( ( n - ku - 1 ) * ( Ru - Rr ) ) / ( (ku-kr) * (1 - Ru ) ), ku-kr, n-ku-1, lower.tail=FALSE)
+    )
+  })
+  
+  delta.R2 <- Ru-Rr
+  names(delta.R2) <- "R2"
+  names(R2.p) <- "R2.p"
+  
+  return(list(
+    delta.R2=delta.R2,
+    R2.p=R2.p, 
+    ku=ku
+  ))
+  
 }
 
 

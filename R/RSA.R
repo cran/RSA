@@ -4,7 +4,7 @@
 #' Performs several RSA model tests on a data set with two predictors
 #'
 #' @details
-#' Even if the main variables of the model are normally distirbuted, their squared terms and interaction terms are necessarily non-normal. By default, the RSA function uses a scaled test statistic (\code{test="Satorra-Bentler"}) and robust standard errors (\code{se="robust"}), which are robust against violations of the normality assumption. 
+#' Even if the main variables of the model are normally distributed, their squared terms and interaction terms are necessarily non-normal. By default, the RSA function uses a scaled test statistic (\code{test="Satorra-Bentler"}) and robust standard errors (\code{se="robust"}), which are robust against violations of the normality assumption. 
 #'
 #' \emph{Why does my standard polynomial regression give different p-values and SEs than the RSA package? Shouldn't they be the same?} This is due to the robust standard errors employed in the RSA package. If you set \code{estimator="ML"} and \code{se="standard"}, you get p-values that are very close to the standard approach. (They might still not be identical because the standard regression approach usually uses an OLS estimator and RSA uses an ML estimator).
 #'
@@ -17,21 +17,42 @@
 #' @import RColorBrewer
 #' @param formula A formula in the form \code{z ~ x*y}, specifying the variable names used from the data frame, where z is the name of the response variable, and x and y are the names of the predictor variables.
 #' @param data A data frame with the variables
-#' @param center Should predictor variables be centered on \emph{each variable's} sample mean before analyses? You should think carefully about this option, as different centering of the predictor variables can affect the commensurability of the predictor scales.
-#' @param scale Should predictor variables be scales on the SD of \emph{each variable} before analyses? You should think carefully about this option, as different scaling of the predictor variables can affect the commensurability of the predictor scales.
+#' @param center Method for centering the predictor variables before the analysis. Default option ("none") applies no centering. "pooled" centers the predictor variables on their \emph{pooled} sample mean, which preserves the commensurability of the predictor scales. "variablewise" centers the predictor variables on \emph{their respective} sample mean. You should think carefully before applying the "variablewise" option, as centering the predictor variables at different values (e.g., their respective means) can affect the commensurability of the predictor scales.
+#' @param scale Method for scaling the predictor variables before the analysis. Default option ("none") applies no scaling. "pooled" scales the predictor variables on their \emph{pooled} sample SD, which preserves the commensurability of the predictor scales. "variablewise" scales the predictor variables on \emph{their respective} sample SD. You should think carefully before applying the "variablewise" option, as scaling the predictor variables at different values (e.g., their respective SDs) can affect the commensurability of the predictor scales.
 #' @param na.rm Remove missings before proceeding?
 #' @param add Additional syntax that is added to the lavaan model. Can contain, for example, additional constraints, like "p01 == 0; p11 == 0"
 #' @param out.rm Should outliers according to Bollen & Jackman (1980) criteria be excluded from the analyses? In large data sets this analysis is the speed bottleneck. If you are sure that no outliers exist, set this option to FALSE for speed improvements.
 #' @param breakline Should the breakline in the unconstrained absolute difference model be allowed (the breakline is possible from the model formulation, but empirically rather unrealistic ...). Defaults to \code{FALSE}
 #' @param verbose Should additional information during the computation process be printed?
-#' @param models A vector with names of all models that should be computed. Should be any from \code{c("absdiff", "absunc", "diff", "mean", "additive", "IA", "SQD", "RR", "SRR", "SRRR", "SSQD", "SRSQD", "full", "null", "onlyx", "onlyy", "onlyx2", "onlyy2", "cubic","CA","RRCA","CL","RRCL")}. For \code{models="all"}, all models are computed, for \code{models="default"} all models besides absolute difference models are computed.
+#' @param models A vector with names of all models that should be computed. Should be any from \code{c("absdiff", "absunc", "diff", "mean", "additive", "IA", "SQD", "RR", "SRR", "SRRR", "SSQD", "SRSQD", "full", "null", "onlyx", "onlyy", "onlyx2", "onlyy2", "cubic", "CA", "RRCA", "CL", "RRCL")}. For \code{models="all"}, all models are computed, for \code{models="default"} all models besides absolute difference models are computed.
 #' @param cubic Should the cubic models with the additional terms Y^3, XY^2, YX^2, and X^3 be included?
-#' @param control.variables A string vector with variable names from \code{data}. These variables are added as linear predictors to the model (in order "to control for them"). No interactions with the other variables are modeled. WARNING: This feature is not implemented yet!
+#' @param control.variables A string vector with variable names from \code{data}. These variables are added as linear predictors to the model (in order "to control for them"). No interactions with the other variables are modeled.
+#' @param center.control.variables Should the control variables be centered before analyses? This can improve interpretability of the intercept, which will then reflect the predicted outcome value at the point (X,Y)=(0,0) when all control variables take their respective \emph{average} values.
 #' @param estimator Type of estimator that should be used by lavaan. Defaults to "MLR", which provides robust standard errors, a robust scaled test statistic, and can handle missing values. If you want to reproduce standard OLS estimates, use \code{estimator="ML"} and \code{se="standard"}
 #' @param se Type of standard errors. This parameter gets passed through to the \code{sem} function of the \code{lavaan} package. See options there. By default, robust SEs are computed. If you use \code{se="boot"}, \code{lavaan} provides CIs and p-values based on the bootstrapped standard error. If you use \code{confint(..., method="boot")}, in contrast, you get CIs and p-values based on percentile bootstrap (see also \code{\link{confint.RSA}}).
 #' @param missing Handling of missing values (this parameter is passed to the \code{lavaan} \code{sem} function). By default (\code{missing=NA}), Full Information Maximum Likelihood (FIML) is employed in case of missing values. If cases with missing values should be excluded, use \code{missing = "listwise"}.
 #' @param ... Additional parameters passed to the \code{lavaan} \code{\link{sem}} function.
 #'
+#'
+#' @note 
+#' For explanations of the meaning of the various different models that can be estimated, please see Schönbrodt (2016) for the second-order models (i.e., all models but "CA", "RRCA", "CL", "RRCL") and Humberg et al. (in preparation) for the third-order (cubic) models ("CA", "RRCA", "CL", "RRCL"). 
+#' 
+#' For most of the second-order models, several auxiliary parameters are computed from the estimated model coefficients (e.g., a1, ..., a5, p10, p11, p20, p21) and printed in the \code{summary} output. They can be used to guide interpretation by means of response surface methodology. Some references that explain how to use these parameters for interpretation are Edwards (2002; comprehensive overview of response surface methodology), Humberg et al. (2019; interpretation of a1, a2, a3, a4, p10, and p11, and how to use them to investigate congruence effects), Nestler et al. (2019; interpretation of a1, a2, a3, a4, and a5, and how to use them to investigate congruence effects, see in particular Appendix A for the introduction of a5), and Schönbrodt et al. (2018; interpretation of a1,...,a5, see in particular Appendix A for a5). 
+#' 
+#' 
+#' @references 
+#' Edwards, J. R. (2002). Alternatives to difference scores: Polynomial regression analysis and response surface methodology. In F. Drasgow & N. W. Schmitt (Eds.), \emph{Advances in measurement and data analysis} (pp. 350–400). San Francisco, CA: Jossey-Bass.
+#' 
+#' Humberg, S., Nestler, S., & Back, M. D. (2019). Response Surface Analysis in Personality and Social Psychology: Checklist and Clarifications for the Case of Congruence Hypotheses. \emph{Social Psychological and Personality Science}, 10(3), 409–419. doi:10.1177/1948550618757600
+#' 
+#' Humberg, S., Schönbrodt, F. D., Back, M. D., Nestler, S. (in preparation). \emph{Cubic response surface analysis: Investigating asymmetric and level-dependent congruence effects with third-order polynomial models.} Manuscript submitted for publication.
+#' 
+#' Nestler, S., Humberg, S., & Schönbrodt, F. D. (2019). Response surface analysis with multilevel data: Illustration for the case of congruence hypotheses. \emph{Psychological Methods}, 24(3), 291–308. doi:10.1037/met0000199
+#' 
+#' Schönbrodt, F. D. (2016). \emph{Testing fit patterns with polynomial regression models.} Retrieved from osf.io/3889z
+#' 
+#' Schönbrodt, F. D., Humberg, S., & Nestler, S. (2018). Testing similarity effects with dyadic response surface analysis. \emph{European Journal of Personality}, 32(6), 627-641. doi:10.1002/per.2169
+#' 
 #'
 #' @seealso \code{\link{demoRSA}}, \code{\link{plotRSA}}, \code{\link{RSA.ST}}, \code{\link{confint.RSA}}, \code{\link{compare}}
 #'
@@ -76,13 +97,10 @@
 #' 		ylab="Implicit power motive", zlab="Affective valence")
 #' }
 
-RSA <- function(formula, data=NULL, center=FALSE, scale=FALSE, na.rm=FALSE, 
+RSA <- function(formula, data=NULL, center="none", scale="none", na.rm=FALSE, 
 	out.rm=TRUE, breakline=FALSE, models="default", cubic=FALSE, 
 	verbose=TRUE, add = "", estimator="MLR",
-	se = "robust", missing=NA, ..., control.variables=c()) {
-
-
-	if (length(control.variables) > 0) stop("Control.variables feature not implemented yet!")
+	se = "robust", missing=NA, control.variables=c(), center.control.variables=FALSE, ...) {
 
 	validmodels <- c("absdiff", "absunc", "diff", "mean", "additive", "IA", "SQD", "SRRR", "SRR", "RR", "SSQD", "SRSQD", "full", "null", "onlyx", "onlyy", "onlyx2", "onlyy2", "weak", "strong", "cubic", "CA", "CL", "RRCA", "RRCL")
 	
@@ -108,11 +126,46 @@ RSA <- function(formula, data=NULL, center=FALSE, scale=FALSE, na.rm=FALSE,
 	IV1 <- all.vars(formula)[2]
 	IV2 <- all.vars(formula)[3]
 
-	## Step 0a: Standardize values (if requested) and calculate higher order terms
-	df <- data[, c(DV, IV1, IV2, control.variables)]	# reduce data frame to actually used variables
-	df[, IV1] <- scale(df[, IV1], center=center, scale=scale)
-	df[, IV2] <- scale(df[, IV2], center=center, scale=scale)
-		
+	# reduce data frame to actually used variables
+	df <- data[, c(DV, IV1, IV2, control.variables)]	
+	
+	
+	## Step 0a: Standardize predictor variables (if requested)
+
+	# when boolean options are used for center/scale (as was necessary in earlier package versions), restore behavior of earlier versions
+	if(center==TRUE){center <- "variablewise"}
+	if(scale==TRUE){scale <- "variablewise"}
+	
+	# "variablewise": standardization at respective variable means/SDs
+	
+	if(center=="variablewise"){
+	  warning("You specified 'variablewise' centering of the predictor variables. Make sure to check whether this is a good choice, as it can distort commensurability. Use center='pooled' if you want to center at the pooled mean instead.", call.=FALSE)
+	  df[, IV1] <- scale(df[, IV1], center=TRUE, scale=FALSE)
+	  df[, IV2] <- scale(df[, IV2], center=TRUE, scale=FALSE)
+	}
+	
+	if(scale=="variablewise"){
+	  warning("You specified 'variablewise' scaling of the predictor variables. Make sure to check whether this is a good choice, as it can distort commensurability. Use scale='pooled' if you want to scale at the pooled SD instead.", call.=FALSE)
+	  df[, IV1] <- scale(df[, IV1], center=FALSE, scale=TRUE)
+	  df[, IV2] <- scale(df[, IV2], center=FALSE, scale=TRUE)
+	}
+	
+	# "pooled": standardization at pooled means/SDs
+	
+	if(center=="pooled"){
+	  pooled.mean <-  mean( c(df[,IV1],df[,IV2]) , na.rm=T)
+	  df[, IV1] <- df[, IV1] - pooled.mean
+	  df[, IV2] <- df[, IV2] - pooled.mean
+	}
+	
+	if(scale=="pooled"){
+	  pooled.sd <-  sd( c(df[,IV1],df[,IV2]) , na.rm=T)
+	  df[, IV1] <- df[, IV1] / pooled.sd
+	  df[, IV2] <- df[, IV2] / pooled.sd
+	}
+	
+	
+	# calculate higher order terms
 	df <- add.variables(formula, data.frame(data.matrix(df)))
 	
 	# give warnings if the zero point is outside of data range
@@ -123,7 +176,7 @@ RSA <- function(formula, data=NULL, center=FALSE, scale=FALSE, na.rm=FALSE,
 		
 	# give warning if one variable has a much higher range than the other variable
 	if ((max(df[, IV1], na.rm=TRUE) - min(df[, IV1], na.rm=TRUE)) / (max(df[, IV2], na.rm=TRUE) - min(df[, IV2], na.rm=TRUE)) > 2)
-		warning("Predictor variables have a very different range (by factor 2 or larger)- please check scaling of variables.")
+		warning("Predictor variables have a very different range (by factor 2 or larger) - please check scaling of variables.")
 	
 	
 	
@@ -157,9 +210,21 @@ RSA <- function(formula, data=NULL, center=FALSE, scale=FALSE, na.rm=FALSE,
 	W_IV1 <- paste0("W_", IV1)
 	W_IV2 <- paste0("W_", IV2)
 
-	# define control variable
-	CV <- ifelse(length(control.variables > 0), paste0(" + ", paste(control.variables, collapse=" + ")), "")
+	
+	## control variables
+	
+	# control variables: set cv flag if control variables are involved
+	is.cv <- length(control.variables) > 0
+	
+	# center control variables (if requested)
+	if(is.cv & center.control.variables){
+	  df[,control.variables] <- scale( df[,control.variables], center=TRUE, scale=FALSE )
+	}
+	
+	# define control variable part of the regression model
+	CV <- ifelse(is.cv, paste0(" + ", paste(control.variables, collapse=" + ")), "")
 
+	
 	## Run polynomial regression as a OLS linear model
 	addcubic <- ""
 	if (is.cubic) addcubic <- paste0(" + ", paste(IV13, IV_IA2, IV_IA3, IV23, sep=" + "))
@@ -213,17 +278,16 @@ withCallingHandlers({
 	poly <- paste0(DV, " ~ b1*", IV1, " + b2*", IV2, " + b3*", IV12, " + b4*", IV_IA, " + b5*", IV22, CV)
 	
 	# Standard full polynomial of third degree
-	polycubic <- paste0(poly, " + b6*", IV13, " + b7*", IV_IA2, " + b8*", IV_IA3, " + b9*", IV23) 
+	polycubic <- paste0(DV, " ~ b1*", IV1, " + b2*", IV2, " + b3*", IV12, " + b4*", IV_IA, " + b5*", IV22, " + b6*", IV13, " + b7*", IV_IA2, " + b8*", IV_IA3, " + b9*", IV23, CV) 
 	
 	
-	if ("null" %in% models) {
+	# always estimate the null model (intercept + control variables only)
 		m.null <- ifelse(is.cubic, 
 		                 paste0(DV, "~ 1 + 0*", IV1, " + 0*", IV2, " + 0*", IV12, " + 0*", IV_IA, " + 0*", IV22, " + 0*", IV13, " + 0*", IV_IA2, " + 0*", IV_IA3, " + 0*", IV23, CV),
 		                 paste0(DV, "~ 1 + 0*", IV1, " + 0*", IV2, " + 0*", IV12, " + 0*", IV_IA, " + 0*", IV22, CV))
 	  s.NULL <- sem(m.null, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
-	}
-	
-	
+
+	  
 	if ("additive" %in% models) {
 	  if (verbose==TRUE) print("Computing additive model (additive) ...")
 	  m.additive <-  paste(ifelse(is.cubic, polycubic, poly),
@@ -624,7 +688,7 @@ withCallingHandlers({
 	}
 	
 	
-	if ("full" %in% models) {
+	# always estimate the full second-order model (= global model for all second-order models)
 		if (verbose==TRUE) print("Computing polynomial model (full) ...")
 		m.full <-  paste(ifelse(is.cubic,polycubic,poly),
 		  ifelse(is.cubic, paste("b6==0","b7==0","b8==0","b9==0", sep="\n"), ""),
@@ -644,15 +708,11 @@ withCallingHandlers({
 			# eigenvalues
 			"l1 := (b3 + b5 + sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2", 
 			"l2 := (b3 + b5 - sqrt((b3+b5)^2 - 4*b3*b5 + b4^2))/2",
-			# specific tests for fit pattern
-			"weakcondition    := b3*b5",				# must be > 0
-			"strongcondition1 := (b2*b4)/(2*b5) - b1",	# must not be different from 0
-			"strongcondition2 := 2*sqrt(b3*b5)  - b4",	# must not be different from 0
 			add,
 			sep="\n"
 		)
 		s.full <- sem(m.full, data=df[df$out==FALSE, ], fixed.x=TRUE, meanstructure=TRUE, se=se, estimator=estimator, missing=missing, ...)
-	}	
+	
 	
 	if ("weak" %in% models) {
 		if (verbose==TRUE) print("Computing weak fit pattern ...")
@@ -757,7 +817,7 @@ withCallingHandlers({
 	## Test all models of third degree
 
 	# Full model of third degree
-	if ("cubic" %in% models) {
+	if ("cubic" %in% models | is.cubic) {
 		if (verbose==TRUE) print("Computing full cubic model (cubic) ...")
 		m.cubic <-  paste(polycubic,
 			# description of surface above LOC and LOIC
@@ -889,8 +949,6 @@ withCallingHandlers({
   warning=function(w) {
 	   W <- as.character(w$call)
 	   if (
-		   (W[1] == "sqrt" & W[2] == "diag(def.cov)" & grepl("NaNs", w$message)) |
-		   #(W[1] == "sqrt" & W[2] == "b3 * b5") |
 			 (W[1] == "sqrt") |
 		   (W[1] == "nlminb" & W[2] == "x.par") |
 		   (W[2] %in% c("m.SRRR.up", "m.SRRR.down", "m.SRSQD.up", "m.SRSQD.down") & grepl("model has NOT converged", w$message))
@@ -944,6 +1002,7 @@ withCallingHandlers({
 		SRSQD.rot = SRSQD.rot, SRRR.rot = SRRR.rot, LM=summary(lm.full), formula=formula, 
 		data=df, out.rm = out.rm, outliers = which(df$out == TRUE), DV=DV, IV1=IV1, IV2=IV2, IV12=IV12, IV22=IV22, 
 		IV_IA=IV_IA, W_IV1=W_IV1, W_IV2=W_IV2, IV13=IV13, IV_IA2=IV_IA2, IV_IA3=IV_IA3, IV23=IV23, 
+		control.variables = control.variables, is.cv = is.cv, 
 		r.squared = summary(lm.full)$r.squared, 
 		is.cubic=is.cubic)
 	

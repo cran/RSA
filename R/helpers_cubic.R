@@ -6,7 +6,7 @@
 # Range check function for strict and broad asymmetric congruence models
 # ---------------------------------------------------------------------
 
-# define function that, for a given point (x,y), computes the one-sided confidence interval of the model-prediction z at (x,y) according to the CA/RRCA model,
+# function that, for a given point (x,y), computes the one-sided confidence interval of the model-prediction z at (x,y) according to the CA/RRCA model,
 
 ci_pred <- function(obj, x, y, side, n, p, alpha, model){
 
@@ -65,8 +65,12 @@ ci_pred <- function(obj, x, y, side, n, p, alpha, model){
 #' @param alpha Alpha level for the one-sided confidence interval of the outcome predictions on E2
 #' @param verbose Should extra information be printed?
 #' @param model Either "CA" or "RRCA"
+#' @param alphacorrection Set "Bonferroni" to adjust the alpha level for multiple testing when testing the outcome predictions of all data points behind E2
+#' 
+#' @references 
+#' Humberg, S., Schönbrodt, F. D., Back, M. D., Nestler, S. (in preparation). \emph{Cubic response surface analysis: Investigating asymmetric and level-dependent congruence effects with third-order polynomial models.} Manuscript submitted for publication.
 
-caRange <- function(object, alpha=0.05, verbose=TRUE, model="CA"){
+caRange <- function(object, alpha=0.05, verbose=TRUE, model="CA", alphacorrection="none"){
       
   rsa = object
   
@@ -143,6 +147,9 @@ caRange <- function(object, alpha=0.05, verbose=TRUE, model="CA"){
   # The results would be exactly the same as with the procedure defined for the CA model in the following.
   # Despite these redundancies, we strictly follow the descriptions in the manuscript here.
   
+  # if requested, apply a Bonferroni correction to the alpha level (number of tests = number of data points behind E2)
+  if(alphacorrection=="Bonferroni"){alpha <- alpha/behind}
+
   if(model == "CA"){
     
     ## compute the confidence interval of the model prediction zr at the intersection point of E2 and the LOIC
@@ -172,6 +179,7 @@ caRange <- function(object, alpha=0.05, verbose=TRUE, model="CA"){
     # build results object for case of CA model
     res <- list(
       data.used = df,
+      behind = behind,
       percentage.behind = p.behind,
       reversion_point_xy = paste0("(",round(xr,2),", ",round(yr,2), ")"),
       reversion_point_z = round(zr,2),
@@ -181,6 +189,7 @@ caRange <- function(object, alpha=0.05, verbose=TRUE, model="CA"){
       which_bad_points = which(df$badcase==TRUE),
       how_many_bad_points = bad,
       percentage_bad_points = p.bad,
+      alpha.used = alpha,
       response = response
       )
     
@@ -223,11 +232,13 @@ caRange <- function(object, alpha=0.05, verbose=TRUE, model="CA"){
     
     # build results object for case of CA model
     res <- list(
-      # data.used = df,
+      data.used = df,
+      behind = behind,
       percentage.behind = p.behind,
       which_bad_points = which(df$badcase==TRUE),
       how_many_bad_points = bad,
       percentage_bad_points = p.bad,
+      alpha.used = alpha,
       response = response
     )
 
@@ -322,6 +333,9 @@ pick_a_point <- function(c1,c3,cov,k){
 #' @param alpha Alpha level for the regions of significance of the surface's curvature
 #' @param verbose Should extra information be printed?
 #' @param model Either "CL" or "RRCL"
+#' 
+#' @references 
+#' Humberg, S., Schönbrodt, F. D., Back, M. D., Nestler, S. (in preparation). \emph{Cubic response surface analysis: Investigating asymmetric and level-dependent congruence effects with third-order polynomial models.} Manuscript submitted for publication.
 
 clRange <- function(object, alpha=0.05, verbose=TRUE, model="CL"){
   
@@ -381,9 +395,9 @@ clRange <- function(object, alpha=0.05, verbose=TRUE, model="CL"){
   # = roots of the quadratic function ak^2 + bk + c, with a, b, c computed as follows
   z = qnorm(1-alpha/2)
   
-  a = 64*c3^2 - 64*COV0["b6","b6"]*z^2
-  b = 64*c1*c3 - 64*COV0["b3","b6"]*z^2
-  c = 16*c1^2 - 16*COV0["b3","b3"]*z^2
+  a = 4*c3^2 - 4*COV0["b6","b6"]*z^2
+  b = 4*c1*c3 - 4*COV0["b3","b6"]*z^2
+  c = c1^2 - COV0["b3","b3"]*z^2
   
   roots = quad_roots(a,b,c)
  

@@ -2,8 +2,8 @@ Encoding: UTF-8
 Package: RSA
 Type: Package
 Title: Response Surface Analysis
-Version: 0.10.0
-Date: 2020-04-29
+Version: 0.10.1
+Date: 2020-06-30
 Authors@R: c(
 		person(c("Felix"), "Schönbrodt", email = "felix@nicebread.de", role = c("cre", "aut")),
 		person("Sarah", "Humberg", role = c("aut"))
@@ -24,8 +24,8 @@ Imports: plyr, RColorBrewer, aplpack, tkrplot, methods
 License: GPL (>= 2)
 RoxygenNote: 7.1.0
 NeedsCompilation: no
-Packaged: 2020-04-29 09:25:47 UTC; felix
+Packaged: 2020-06-30 08:56:30 UTC; felix
 Author: Felix Schönbrodt [cre, aut],
   Sarah Humberg [aut]
 Repository: CRAN
-Date/Publication: 2020-04-29 09:40:02 UTC
+Date/Publication: 2020-06-30 12:50:02 UTC

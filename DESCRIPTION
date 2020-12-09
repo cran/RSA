@@ -2,8 +2,8 @@ Encoding: UTF-8
 Package: RSA
 Type: Package
 Title: Response Surface Analysis
-Version: 0.10.1
-Date: 2020-06-30
+Version: 0.10.2
+Date: 2020-12-09
 Authors@R: c(
 		person(c("Felix"), "Schönbrodt", email = "felix@nicebread.de", role = c("cre", "aut")),
 		person("Sarah", "Humberg", role = c("aut"))
@@ -18,14 +18,14 @@ Description: Advanced response surface analysis. The main function RSA computes
     Calculates many surface parameters (a1 to a5, principal axes, stationary point,
     eigenvalues) and provides standard, robust, or bootstrapped standard errors
     and confidence intervals for them.
-Suggests: fields, rgl, qgraph, tcltk, testthat, covr
+Suggests: fields, rgl, qgraph, tcltk, tkrplot, testthat, covr
 Depends: R (>= 2.15.0), lavaan (>= 0.5.20), ggplot2, lattice
-Imports: plyr, RColorBrewer, aplpack, tkrplot, methods
+Imports: plyr, RColorBrewer, aplpack, methods
 License: GPL (>= 2)
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 NeedsCompilation: no
-Packaged: 2020-06-30 08:56:30 UTC; felix
+Packaged: 2020-12-09 11:45:22 UTC; felix
 Author: Felix Schönbrodt [cre, aut],
   Sarah Humberg [aut]
 Repository: CRAN
-Date/Publication: 2020-06-30 12:50:02 UTC
+Date/Publication: 2020-12-09 13:50:02 UTC

@@ -35,17 +35,18 @@
 #'
 #'
 #' @note 
-#' For explanations of the meaning of the various different models that can be estimated, please see Schönbrodt (2016) for the second-order models (i.e., all models but "CA", "RRCA", "CL", "RRCL") and Humberg et al. (in preparation) for the third-order (cubic) models ("CA", "RRCA", "CL", "RRCL"). 
+#' For explanations of the meaning of the various different models that can be estimated, please see Schönbrodt (2016) for the second-order models (i.e., all models but "CA", "RRCA", "CL", "RRCL") and Humberg et al. (in press) for the third-order (cubic) models ("CA", "RRCA", "CL", "RRCL"). 
 #' 
-#' For most of the second-order models, several auxiliary parameters are computed from the estimated model coefficients (e.g., a1, ..., a5, p10, p11, p20, p21) and printed in the \code{summary} output. They can be used to guide interpretation by means of response surface methodology. Some references that explain how to use these parameters for interpretation are Edwards (2002; comprehensive overview of response surface methodology), Humberg et al. (2019; interpretation of a1, a2, a3, a4, p10, and p11, and how to use them to investigate congruence effects), Nestler et al. (2019; interpretation of a1, a2, a3, a4, and a5, and how to use them to investigate congruence effects, see in particular Appendix A for the introduction of a5), and Schönbrodt et al. (2018; interpretation of a1,...,a5, see in particular Appendix A for a5). 
+#' For most of the second-order models, several auxiliary parameters are computed from the estimated model coefficients (e.g., a1, ..., a5, p10, p11, p20, p21) and printed in the \code{summary} output. They can be used to guide interpretation by means of response surface methodology. Some references that explain how to use these parameters for interpretation are Edwards (2002; comprehensive overview of response surface methodology), Humberg et al. (2019; interpretation of a1, a2, a3, a4, p10, and p11, and how to use them to investigate congruence effects), Nestler et al. (2019; interpretation of a1, a2, a3, a4, and a5, and how to use them to investigate congruence effects, see in particular Appendix A for the introduction of a5), and Schönbrodt et al. (2018; interpretation of a1, ..., a5, see in particular Appendix A for a5).
 #' 
+#' The print function provides descriptive statistics about discrepancies in the predictors (with respect to numerical congruence). A cutpoint of |delta z| > 0.5 is used. The computation generally follows the idea of Shannock et al (2010) and Fleenor et al. (1996). However, in contrast to them, we standardize to the common mean and the common SD of both predictor variables. Otherwise we would break commensurability, and a person who has x=y in the unstandardized variable could become incongruent after variable-wise standardization. See also our discussion of commensurability and scale transformation in the cubic RSA paper (Humberg et al., in press; see pp. 35 - 37 in the preprint at \url{https://psyarxiv.com/v6m35)}.
 #' 
 #' @references 
 #' Edwards, J. R. (2002). Alternatives to difference scores: Polynomial regression analysis and response surface methodology. In F. Drasgow & N. W. Schmitt (Eds.), \emph{Advances in measurement and data analysis} (pp. 350–400). San Francisco, CA: Jossey-Bass.
 #' 
 #' Humberg, S., Nestler, S., & Back, M. D. (2019). Response Surface Analysis in Personality and Social Psychology: Checklist and Clarifications for the Case of Congruence Hypotheses. \emph{Social Psychological and Personality Science}, 10(3), 409–419. doi:10.1177/1948550618757600
 #' 
-#' Humberg, S., Schönbrodt, F. D., Back, M. D., Nestler, S. (in preparation). \emph{Cubic response surface analysis: Investigating asymmetric and level-dependent congruence effects with third-order polynomial models.} Manuscript submitted for publication.
+#' Humberg, S., Schönbrodt, F. D., Back, M. D., & Nestler, S. (in press). Cubic response surface analysis: Investigating asymmetric and level-dependent congruence effects with third-order polynomial models. Psychological Methods. doi:10.1037/met0000352
 #' 
 #' Nestler, S., Humberg, S., & Schönbrodt, F. D. (2019). Response surface analysis with multilevel data: Illustration for the case of congruence hypotheses. \emph{Psychological Methods}, 24(3), 291–308. doi:10.1037/met0000199
 #' 
@@ -95,6 +96,16 @@
 #' # Plot the final model
 #' plot(r.m, model="RR", xlab="Explicit power motive", 
 #' 		ylab="Implicit power motive", zlab="Affective valence")
+#' 		
+#' # Inclusion of control variables: Fake data on self-other agreement
+#' data(selfother)
+#' r.c <- RSA(liking~IQ_self*IQ_friend, 
+#'            center="pooled",
+#'            control.variables=c("age", "int"),
+#'            center.control.variables = TRUE,
+#'            data=selfother)
+#' summary(r.c)	
+#' 		
 #' }
 
 RSA <- function(formula, data=NULL, center="none", scale="none", na.rm=FALSE, 
@@ -610,7 +621,7 @@ withCallingHandlers({
 	if (any(models %in% c("SRSQD"))) {
 		if (verbose==TRUE) print("Computing rotated squared difference model (SRSQD), up ...")
 		m.SRSQD.up <- paste(paste(ifelse(is.cubic,polycubic,poly), " + start(0.001)*", IV22),
-			"b1 == (b2*b4)/(2*b5)",
+		  "2*b1*b5 == b2*b4",	# this is a different (but algebraically equivalent) formulation of the constraints
 			"b3 > 0.000001",
 			"b5 > 0.000001",
 			"b4^2 == 4*b3*b5",	# this is a different (but algebraically equivalent) formulation of the constraints
@@ -639,7 +650,7 @@ withCallingHandlers({
 			
 		if (verbose==TRUE) print("Computing rotated squared difference model (SRSQD), down ...")
 		m.SRSQD.down <- paste(paste(ifelse(is.cubic,polycubic,poly), " + start(-0.001)*", IV22),
-			"b1 == (b2*b4)/(2*b5)",
+			"2*b1*b5 == b2*b4",	# this is a different (but algebraically equivalent) formulation of the constraints
 			"b3 < -0.000001",
 			"b5 < -0.000001",
 			"b4^2 == 4*b3*b5",

@@ -2,6 +2,29 @@
 \title{News for package 'RSA'}
 \encoding{UTF-8}
 
+
+\section{Version 0.10.4}{
+\subsection{New features}{
+	\itemize{
+		\item New demo data set (self-generated fake data): \code{selfother} (can be used to try inclusion of control variables and to try cubic RSA)
+}
+}
+\subsection{Bug fixes/Glitches}{
+	\itemize{
+		\item Fixed error in estimation of SRSQD model (by replacing a model constraint by an equivalent formula).
+	}
+}
+}
+
+
+\section{Version 0.10.3}{
+\subsection{Bug fixes/Glitches}{
+	\itemize{
+		\item Documented the discrepancy output of the summary() function in the help file.
+	}
+}
+}
+
 \section{Version 0.10.2}{
 \subsection{Bug fixes/Glitches}{
 	\itemize{

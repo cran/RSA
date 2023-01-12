@@ -3,6 +3,26 @@
 \encoding{UTF-8}
 
 
+\section{Version 0.10.6}{
+\subsection{Maintenance release}{
+	\itemize{
+		\item Update documentation for binary outcomes (doesn't work well at the moment; just with some dirty workarounds).
+		\item Document an (unintended) feature in plotRSA when using the \code{project} parameter: Note that projected elements are plotted in the order given in the vector (first elements are plotted first and overplotted by later elements).
+		\item Apply patch by Duncan Murdoch regarding deprecations in the rgl package.
+}
+}
+}
+
+\section{Version 0.10.5}{
+\subsection{New features}{
+	\itemize{
+		\item Draw stilts for selected data points in plot (see new argument \code{stilt} in the points list, see \code{?plotRSA}).
+		\item Change color of data point border (see new argument \code{fill} in the points list, see \code{?plotRSA}). If parameter \code{fill} is provided, then this is the fill of the points, and \code{color} is the border color. (This behavior is inherited from R, which uses this system for pch=21).
+}
+}
+}
+
+
 \section{Version 0.10.4}{
 \subsection{New features}{
 	\itemize{

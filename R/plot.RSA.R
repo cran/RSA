@@ -51,10 +51,12 @@
 #'	\itemize{
 #'		\item data: Data frame which contains the coordinates of the raw data points. First column = x, second = y, third = z. This data frame is automatically generated when the plot is based on a fitted RSA-object
 #'		\item show = TRUE: Should the original data points be overplotted?
-#'		\item color = "black": Color of the points
+#'		\item color = "black": Color of the points. Either a single value for all points, or a vector with the same size as data points provided. If parameter \code{fill} is also defined, \code{color} refers to the border of the points.
+#'		\item fill = NULL: Fill of the points. Either a single value for all points, or a vector with the same size as data points provided. As a default, this is set to NULL, which means that all points simply have the color \code{color}.
 #' 		\item value="raw": Plot the original z value, "predicted": plot the predicted z value
 #'		\item jitter = 0: Amount of jitter for the raw data points. For z values, a value of 0.005 is reasonable
-#'		\item cex = .5: multiplication factor for point size
+#'		\item cex = .5: multiplication factor for point size. Either a single value for all points, or a vector with the same size as data points provided.
+#' 		\item stilt: Should stilts be drawn for selected data points (i.e., lines from raw data points to the floor)? A logical vector with the same size as data points provided, indicating which points should get a stilt.
 #' 		\item out.mark = FALSE: If set to TRUE, outliers according to Bollen & Jackman (1980) are printed as red X symbols, but only when they have been removed in the RSA function: \code{RSA(..., out.rm=TRUE)}.
 #'			\itemize{
 #'				\item If out.rm == TRUE (in RSA()) and out.mark == FALSE (in plotRSA()), the outlier is removed from the model and *not plotted* in plotRSA.
@@ -72,7 +74,7 @@
 #' @param coefs Should the regression coefficients b1 to b5 (b1 to b9 for cubic models) be shown on the plot? (Only for 3d plot)
 #' @param axes A vector of strings specifying the axes that should be plotted. Can be any combination of c("LOC", "LOIC", "PA1", "PA2", "E2", "K1", "K2"). LOC = line of congruence, LOIC = line of incongruence, PA1 = first principal axis, PA2 = second principal axis, E2 = second extremum line in the CA or RRCA model, K1, K2 = boundary lines of the regions of significance in the CL or RRCL model.
 #' @param axesStyles Define the visual styles of the axes LOC, LOIC, PA1, PA2, E2, K1, and K2. Provide a named list: \code{axesStyles=list(LOC = list(lty="solid",  lwd=2, col=ifelse(bw==TRUE, "black", "blue"))}. It recognizes three parameters: \code{lty}, \code{lwd}, and \code{col}. If you define a style for an axis, you have to provide all three parameters, otherwise a warning will be shown.
-#' @param project A vector of graphic elements that should be projected on the floor of the cube. Can include any combination of c("LOC", "LOIC", "PA1", "PA2", "contour", "points", "E2", "K1", "K2")
+#' @param project A vector of graphic elements that should be projected on the floor of the cube. Can include any combination of c("LOC", "LOIC", "PA1", "PA2", "contour", "points", "E2", "K1", "K2"). Note that projected elements are plotted in the order given in the vector (first elements are plotted first and overplotted by later elements).
 #' @param maxlines Should the maximum lines be plotted? (red: maximum X for a given Y, blue: maximum Y for a given X). Works only in type="3d"
 #' @param link Link function to transform the z axes. Implemented are "identity" (no transformation; default), "probit", and "logit"
 #' @param suppress.surface Should the surface be suppressed (only for \code{type="3d"})? Useful for only showing the data points, or for didactic purposes (e.g., first show the cube, then fade in the surface).
@@ -158,7 +160,7 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 	),
 	project=c("contour"), maxlines=FALSE,
 	cex.tickLabel=1, cex.axesLabel=1, cex.main=1, 
-	points = list(data=NULL, show=NA, value="raw", jitter=0, color="black", cex=.5, out.mark=FALSE),
+	points = list(data=NULL, show=NA, value="raw", jitter=0, color="black", cex=.5, stilt=NULL, out.mark=FALSE, fill=NULL),
 	fit=NULL, link="identity", 
 	tck=c(1.5, 1.5, 1.5), distance=c(1.3, 1.3, 1.4), border=FALSE, 
 	contour = list(show=FALSE, color="grey40", highlight = c()),
@@ -171,7 +173,7 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 	# Warnings and error handling ...
 	if (!identical(xlim, ylim)) {print("Note: Axes dimensions are not equal. The visual diagonal is *not* the line of numerical congruence! Consider choosing identical values for xlim and ylim.")}
 		
-	if (class(x) == "RSA") {
+	if (inherits(x, "RSA")) {
 		stop("If you want to plot an RSA object, please use plot(...); plotRSA should be only used when you directly provide the regression coefficients.")
 	}
 	
@@ -207,10 +209,10 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 		points$data <- data.frame(points$data)	# a tibble causes an error ...
 	}
 	
-	if (is.null(points) || (typeof(points) == "logical" && points == TRUE)) {
-		points <- list(show=TRUE, value="raw", jitter=0, color="black", cex=.5, out.mark=FALSE)
+	if ((typeof(points) == "logical" && points == TRUE)) {
+		points <- list(show=TRUE, value="raw", jitter=0, color="black", cex=.5, out.mark=FALSE, fill=NULL)
 	}
-	if (is.null(points) || (typeof(points) == "logical" && points == FALSE)) {
+	if ((typeof(points) == "logical" && points == FALSE)) {
 		points <- list(show=FALSE)
 	}
 	
@@ -226,11 +228,28 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 	if (is.null(points$color)) points$color <- "black"
 	if (is.null(points$jitter)) points$jitter <- 0
 	if (is.null(points$cex)) points$cex <- 0.5
+	if (is.null(points$stilt)) points$stilt <- FALSE
 	if (is.null(points$out.mark)) points$out.mark <- FALSE
 	if (points$show==TRUE & is.null(points$data)) {
 		warning("You must provide a data frame with the coordinates of the raw data points (points = list(show = TRUE, data = ???)). Points are not plotted.")
 		points$show <- FALSE
 	}
+
+	if (!is.null(points$fill) & compareVersion(as.character(packageVersion("lattice")), "0.21.3") < 0) {
+		warning("Requesting a fill color for points requires a version of the package 'lattice' >= 0.21.3. Parameter fill is set to NULL.")
+		points$fill <- NULL
+	}
+
+	if (!is.null(points$data) && (points$show==TRUE & length(points$color) > 1 & (length(points$color) != nrow(points$data)))) {
+		warning("Either provide a single color value, or a vector of colors which has the same length as the data set. Color is reset to 'black' for all data points.")
+		points$color <- "black"
+	}
+
+	if (!is.null(points$data) && (points$show==TRUE & length(points$fill) > 1 & (length(points$fill) != nrow(points$data)))) {
+		warning("Either provide a single fill color value, or a vector of colors which has the same length as the data set. fill is set to NULL.")
+		points$fill <- NULL
+	}
+
 	if (!is.null(fit)) {
 		if (points$out.mark==TRUE & fit$out.rm==FALSE) {
 			warning("Outliers can only be marked in the plot when they were removed in the RSA function: RSA(..., out.rm=TRUE).")
@@ -544,8 +563,8 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 		col2 <- as.character(cut(1:(R[2] - R[1] + 1), breaks=length(pal), labels=pal))
 		
 		rgl::open3d(cex=cex.main)
-		rgl::rgl.viewpoint(-30, -90, fov=0)
-		rgl::rgl.light(theta = 0, phi = 90, viewpoint.rel = TRUE, ambient = "#FF0000", diffuse = "#FFFFFF", specular = "#FFFFFF")
+		rgl::view3d(-30, -90, fov=0)
+		rgl::light3d(theta = 0, phi = 90, viewpoint.rel = TRUE, ambient = "#FF0000", diffuse = "#FFFFFF", specular = "#FFFFFF")
 		rgl::persp3d(P$x, P$y, DV2, xlab = xlab, ylab = ylab, zlab = zlab, color=col2[DV2 - R[1] + 1], main=main, ...)
 
 		if (contour$show == TRUE) {
@@ -602,7 +621,7 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 				
 			
 			# ---------------------------------------------------------------------
-			# 1. Projection on bottom of cube
+			# 1a. Projection on bottom of cube
 			  if (length(project) > 0) {
 				  for (p in project) {
 					  if (p %in% c("LOC", "LOIC", "PA1", "PA2", "E2", "K1", "K2")) {
@@ -666,6 +685,58 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 				}
 				  
 		  	
+			
+
+			# ---------------------------------------------------------------------
+			# 1b. Stilts
+			if (!(typeof(points) == "logical" && points == FALSE) & length(points$stilt) > 0) {
+
+				X2 <- xlim.scaled[1] + diff(xlim.scaled) * (x.points - xlim[1]) / diff(xlim)
+	  			Y2 <- ylim.scaled[1] + diff(ylim.scaled) * (y.points - ylim[1]) / diff(ylim)
+				Z2 <- zlim.scaled[1] + diff(zlim.scaled) * (z.points - zlim[1]) / diff(zlim)
+				Z.floor <- RESCALE.Z(min(zlim.final) + .01)
+
+				# loop through stilts
+				for (s in which(points$stilt == TRUE)) {
+					
+					# two points: from top to bottom
+					stilt_df <- data.frame(X=c(X2[s], X2[s]), Y=c(Y2[s], Y2[s]), Z=c(Z2[s], Z.floor))
+					
+					# determine color of the stilt
+					if (is.null(points$fill)){
+					  stilt_col <- points$color[s]
+					} else {
+					  stilt_col <- points$fill[s]
+					}
+							
+					# stilt lines
+					panel.3dscatter(x = stilt_df$X, y = stilt_df$Y, z = stilt_df$Z, xlim = xlim, ylim = ylim, zlim = zlim, xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled,
+					col=stilt_col, type="l", lwd=2, ...)
+					
+					# stilt foot on floor with standard point
+					#panel.3dscatter(x = X2[s], y = Y2[s], z = Z.floor, xlim = xlim, ylim = ylim, zlim = zlim, xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled,
+					#col=stilt_col, cex=points$cex[s], type="p", pch=1, lwd=2, ...)
+
+					# emulate "X" with perspective: draw two lines that form an x around the foot of the stilt
+					cross_size_x <- diff(xlim.scaled)/30
+					cross_size_y <- diff(ylim.scaled)/30
+					cross1 <- data.frame(
+						X=c(X2[s]-cross_size_x, X2[s]+cross_size_x), 
+						Y=c(Y2[s], Y2[s]), 
+						Z=c(Z.floor, Z.floor))
+					cross2 <- data.frame(
+						X=c(X2[s], X2[s]), 
+						Y=c(Y2[s]-cross_size_y, Y2[s]+cross_size_y), 
+						Z=c(Z.floor, Z.floor))	
+					panel.3dscatter(x = cross1$X, y = cross1$Y, z = cross1$Z, xlim = xlim, ylim = ylim, zlim = zlim, xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled,
+					col=stilt_col, type="l", lwd=1, ...)	
+
+					panel.3dscatter(x = cross2$X, y = cross2$Y, z = cross2$Z, xlim = xlim, ylim = ylim, zlim = zlim, xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled,
+					col=stilt_col, type="l", lwd=1, ...)
+				}
+			}
+
+			
 				
 			   # ---------------------------------------------------------------------
 			   # 2. Borders, back part
@@ -783,12 +854,20 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 							
 	  			              x2 <- xlim.scaled[1] + diff(xlim.scaled) * (x.points - xlim[1]) / diff(xlim)
 	  			              y2 <- ylim.scaled[1] + diff(ylim.scaled) * (y.points - ylim[1]) / diff(ylim)
-							  z2 <- zlim.scaled[1] + diff(zlim.scaled) * (z.points - zlim[1]) / diff(zlim)
-							
-	  			              panel.3dscatter(x = x2, y = y2, z = z2, xlim = xlim, ylim = ylim, zlim = zlim,
-	  			                              xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled,
-	  										  pch=20, col=points$color, cex=points$cex, ...)
-							  # plot outliers
+	  			              z2 <- zlim.scaled[1] + diff(zlim.scaled) * (z.points - zlim[1]) / diff(zlim)
+	  			              
+	  			              if (is.null(points$fill)){
+	  			                panel.3dscatter(x = x2, y = y2, z = z2, xlim = xlim, ylim = ylim, zlim = zlim,
+	  			                              xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled, pch=20, col=points$color, cex=points$cex, ...)
+	  			              } else {
+	  			                panel.3dscatter(x = x2, y = y2, z = z2, xlim = xlim, ylim = ylim, zlim = zlim,
+	  			                              xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled, pch=21, col=points$color, fill=points$fill, cex=points$cex, ...)
+							  }
+	  			              
+							  	  			           
+
+	  			              
+	  			              # plot outliers
 							  if (points$out.mark==TRUE) {
 	  			              	panel.3dscatter(x = x2[fit$outliers], y = y2[fit$outliers], z = z2[fit$outliers], xlim = xlim, ylim = ylim, zlim = zlim,
 	  			                              xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled,

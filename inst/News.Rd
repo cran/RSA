@@ -2,6 +2,30 @@
 \title{News for package 'RSA'}
 \encoding{UTF-8}
 
+\section{Version 0.10.8}{
+\subsection{New features}{
+	\itemize{
+		\item Draw user-defined lines on the surface (see new argument \code{addLines} in \code{plotRSA}).
+		\item Draw user-defined fat points in the contour plot (see new argument \code{addPoints} in \code{plotRSA}).
+}
+}
+\subsection{Bug fixes/Glitches}{
+	\itemize{
+		\item In the plots, the user-defined axesStyles will now also be applied to the contour plot.
+		\item Fixed all NOTES from CRAN.
+	}
+}
+}
+
+\section{Version 0.10.7}{
+\subsection{Maintenance release}{
+	\itemize{
+		\item Update documentation for RSA.ST (change "a4" to "a5")
+		\item Fix the ggplot warning about the fill aesthetic (fixes #33)
+		\item Fix person() calls in DESCRIPTION and CITATION
+}
+}
+}
 
 \section{Version 0.10.6}{
 \subsection{Maintenance release}{

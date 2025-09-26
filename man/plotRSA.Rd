@@ -46,6 +46,8 @@ plotRSA(
     "blue")), PA1 = list(lty = "dotted", lwd = 2, col = ifelse(bw == TRUE, "black",
     "gray30")), PA2 = list(lty = "dotted", lwd = 2, col = ifelse(bw == TRUE, "black",
     "gray30"))),
+  addLines = NULL,
+  addPoints = NULL,
   project = c("contour"),
   maxlines = FALSE,
   cex.tickLabel = 1,
@@ -145,6 +147,10 @@ plotRSA(
 
 \item{axesStyles}{Define the visual styles of the axes LOC, LOIC, PA1, PA2, E2, K1, and K2. Provide a named list: \code{axesStyles=list(LOC = list(lty="solid",  lwd=2, col=ifelse(bw==TRUE, "black", "blue"))}. It recognizes three parameters: \code{lty}, \code{lwd}, and \code{col}. If you define a style for an axis, you have to provide all three parameters, otherwise a warning will be shown.}
 
+\item{addLines}{Define lines in the xy-plane which can then be plotted on the surface. Provide a named list, in which each additional line is specified as a named list; for example \code{addLines = list(Line1 = list(function.in="X", p0=0, p1=0), Line2 = list(function.in="Y", p0=0, p1=0))}. The line names (e.g., Line1 and Line2) can be freely chosen. The parameter \code{function.in} can be either "X" or "Y". If it is "X", the line is specified as a function of Y in X via the formula Y = p0 + p1 X. If it is "Y", the line is specified as X = p0 + p1 Y. All lines specified in addLines can be included in the axes and/or project argument via their chosen line names (e.g., axes=c("LOC", "Line1", "Line2")), and their style can be defined via axesStyles.}
+
+\item{addPoints}{Define points in the xy-plane which are then plotted in the contour plot. Provide a list with the (x,y) coordinates: \code{addPoints=list(c(0,1), c(-1,.5))}.}
+
 \item{project}{A vector of graphic elements that should be projected on the floor of the cube. Can include any combination of c("LOC", "LOIC", "PA1", "PA2", "contour", "points", "E2", "K1", "K2"). Note that projected elements are plotted in the order given in the vector (first elements are plotted first and overplotted by later elements).}
 
 \item{maxlines}{Should the maximum lines be plotted? (red: maximum X for a given Y, blue: maximum Y for a given X). Works only in type="3d"}
@@ -230,7 +236,7 @@ plotRSA(x=.314, y=-.118, x2=-.145, y2=-.102, xy=.299, b0=5.628, type="i")
 # Plot response surface from an RSA object
 set.seed(0xBEEF)
 n <- 300
-err <- 2
+err <- 10
 x <- rnorm(n, 0, 5)
 y <- rnorm(n, 0, 5)
 df <- data.frame(x, y)

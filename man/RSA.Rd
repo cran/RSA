@@ -57,7 +57,7 @@ RSA(
 
 \item{center.control.variables}{Should the control variables be centered before analyses? This can improve interpretability of the intercept, which will then reflect the predicted outcome value at the point (X,Y)=(0,0) when all control variables take their respective \emph{average} values.}
 
-\item{...}{Additional parameters passed to the \code{lavaan} \code{\link{sem}} function.}
+\item{...}{Additional parameters passed to the \code{lavaan} \code{\link[lavaan:sem]{sem}} function.}
 }
 \description{
 Performs several RSA model tests on a data set with two predictors
@@ -67,7 +67,7 @@ Even if the main variables of the model are normally distributed, their squared 
 
 \emph{Why does my standard polynomial regression give different p-values and SEs than the RSA package? Shouldn't they be the same?} This is due to the robust standard errors employed in the RSA package. If you set \code{estimator="ML"} and \code{se="standard"}, you get p-values that are very close to the standard approach. (They might still not be identical because the standard regression approach usually uses an OLS estimator and RSA uses an ML estimator).
 
-Experimental feature (use with caution!): You can also fit \strong{binary outcome variables} with a probit link function. For that purpose, the response variable has to be defined as "ordered", and the \code{lavaan} estimator changed to "WLSMV": \code{r1.binary <- RSA(z.binary~x*y, df, ordered="z.binary", estimator="WLSMV", model="full")} (for more details see the help file of the \code{\link{sem}} function in the \code{lavaan} package.). The results can also be plotted with probabilities on the z axis using the probit link function: \code{plot(r1.binary, link="probit", zlim=c(0, 1), zlab="Probability")}. For plotting, the binary outcome variable must be coded with 0 and 1 (not as a factor).
+Experimental feature (use with caution!): You can also fit \strong{binary outcome variables} with a probit link function. For that purpose, the response variable has to be defined as "ordered", and the \code{lavaan} estimator changed to "WLSMV": \code{r1.binary <- RSA(z.binary~x*y, df, ordered="z.binary", estimator="WLSMV", model="full")} (for more details see the help file of the \code{\link[lavaan:sem]{sem}} function in the \code{lavaan} package.). The results can also be plotted with probabilities on the z axis using the probit link function: \code{plot(r1.binary, link="probit", zlim=c(0, 1), zlab="Probability")}. For plotting, the binary outcome variable must be coded with 0 and 1 (not as a factor).
 \code{lavaan} at the moment only supports a probit link function for binary outcomes, not a logit link. Please be aware that this experimental feature can fit the full model, but most other functions (such as model comparisons) might break and errors might show up.
 }
 \note{
@@ -75,7 +75,7 @@ For explanations of the meaning of the various different models that can be esti
 
 For most of the second-order models, several auxiliary parameters are computed from the estimated model coefficients (e.g., a1, ..., a5, p10, p11, p20, p21) and printed in the \code{summary} output. They can be used to guide interpretation by means of response surface methodology. Some references that explain how to use these parameters for interpretation are Edwards (2002; comprehensive overview of response surface methodology), Humberg et al. (2019; interpretation of a1, a2, a3, a4, p10, and p11, and how to use them to investigate congruence effects), Nestler et al. (2019; interpretation of a1, a2, a3, a4, and a5, and how to use them to investigate congruence effects, see in particular Appendix A for the introduction of a5), and Schönbrodt et al. (2018; interpretation of a1, ..., a5, see in particular Appendix A for a5).
 
-The print function provides descriptive statistics about discrepancies in the predictors (with respect to numerical congruence). A cutpoint of |delta z| > 0.5 is used. The computation generally follows the idea of Shannock et al (2010) and Fleenor et al. (1996). However, in contrast to them, we standardize to the common mean and the common SD of both predictor variables. Otherwise we would break commensurability, and a person who has x=y in the unstandardized variable could become incongruent after variable-wise standardization. See also our discussion of commensurability and scale transformation in the cubic RSA paper (Humberg et al., in press; see pp. 35 - 37 in the preprint at \url{https://psyarxiv.com/v6m35)}.
+The print function provides descriptive statistics about discrepancies in the predictors (with respect to numerical congruence). A cutpoint of |delta z| > 0.5 is used. The computation generally follows the idea of Shannock et al (2010) and Fleenor et al. (1996). However, in contrast to them, we standardize to the common mean and the common SD of both predictor variables. Otherwise we would break commensurability, and a person who has x=y in the unstandardized variable could become incongruent after variable-wise standardization. See also our discussion of commensurability and scale transformation in the cubic RSA paper (Humberg et al., in press; see pp. 35 - 37 in the preprint at \url{https://osf.io/preprints/psyarxiv/v6m35)}.
 }
 \examples{
 # Compute response surface from a fake data set

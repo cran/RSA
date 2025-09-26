@@ -74,6 +74,8 @@
 #' @param coefs Should the regression coefficients b1 to b5 (b1 to b9 for cubic models) be shown on the plot? (Only for 3d plot)
 #' @param axes A vector of strings specifying the axes that should be plotted. Can be any combination of c("LOC", "LOIC", "PA1", "PA2", "E2", "K1", "K2"). LOC = line of congruence, LOIC = line of incongruence, PA1 = first principal axis, PA2 = second principal axis, E2 = second extremum line in the CA or RRCA model, K1, K2 = boundary lines of the regions of significance in the CL or RRCL model.
 #' @param axesStyles Define the visual styles of the axes LOC, LOIC, PA1, PA2, E2, K1, and K2. Provide a named list: \code{axesStyles=list(LOC = list(lty="solid",  lwd=2, col=ifelse(bw==TRUE, "black", "blue"))}. It recognizes three parameters: \code{lty}, \code{lwd}, and \code{col}. If you define a style for an axis, you have to provide all three parameters, otherwise a warning will be shown.
+#' @param addLines Define lines in the xy-plane which can then be plotted on the surface. Provide a named list, in which each additional line is specified as a named list; for example \code{addLines = list(Line1 = list(function.in="X", p0=0, p1=0), Line2 = list(function.in="Y", p0=0, p1=0))}. The line names (e.g., Line1 and Line2) can be freely chosen. The parameter \code{function.in} can be either "X" or "Y". If it is "X", the line is specified as a function of Y in X via the formula Y = p0 + p1 X. If it is "Y", the line is specified as X = p0 + p1 Y. All lines specified in addLines can be included in the axes and/or project argument via their chosen line names (e.g., axes=c("LOC", "Line1", "Line2")), and their style can be defined via axesStyles.
+#' @param addPoints Define points in the xy-plane which are then plotted in the contour plot. Provide a list with the (x,y) coordinates: \code{addPoints=list(c(0,1), c(-1,.5))}.
 #' @param project A vector of graphic elements that should be projected on the floor of the cube. Can include any combination of c("LOC", "LOIC", "PA1", "PA2", "contour", "points", "E2", "K1", "K2"). Note that projected elements are plotted in the order given in the vector (first elements are plotted first and overplotted by later elements).
 #' @param maxlines Should the maximum lines be plotted? (red: maximum X for a given Y, blue: maximum Y for a given X). Works only in type="3d"
 #' @param link Link function to transform the z axes. Implemented are "identity" (no transformation; default), "probit", and "logit"
@@ -112,7 +114,7 @@
 #' # Plot response surface from an RSA object
 #' set.seed(0xBEEF)
 #' n <- 300
-#' err <- 2
+#' err <- 10
 #' x <- rnorm(n, 0, 5)
 #' y <- rnorm(n, 0, 5)
 #' df <- data.frame(x, y)
@@ -158,6 +160,7 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 		PA1 = list(lty="dotted", lwd=2, col=ifelse(bw==TRUE, "black", "gray30")),
 		PA2 = list(lty="dotted", lwd=2, col=ifelse(bw==TRUE, "black", "gray30"))
 	),
+	addLines=NULL, addPoints=NULL,
 	project=c("contour"), maxlines=FALSE,
 	cex.tickLabel=1, cex.axesLabel=1, cex.main=1, 
 	points = list(data=NULL, show=NA, value="raw", jitter=0, color="black", cex=.5, stilt=NULL, out.mark=FALSE, fill=NULL),
@@ -281,8 +284,15 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 	if (is.null(axesStyles[["PA2"]])) axesStyles[["PA2"]] <- list(lty="dotted", lwd=2, col=ifelse(bw==TRUE, "black", "gray30"))	
 	if (is.null(axesStyles[["E2"]])) axesStyles[["E2"]] <- list(lty="solid", lwd=2, col=ifelse(bw==TRUE, "black", "deeppink"))	
 	if (is.null(axesStyles[["K1"]])) axesStyles[["K1"]] <- list(lty="solid", lwd=2, col=ifelse(bw==TRUE, "black", "deeppink"))	
-	if (is.null(axesStyles[["K2"]])) axesStyles[["K2"]] <- list(lty="solid", lwd=2, col=ifelse(bw==TRUE, "black", "deeppink"))	
+	if (is.null(axesStyles[["K2"]])) axesStyles[["K2"]] <- list(lty="solid", lwd=2, col=ifelse(bw==TRUE, "black", "deeppink"))
 	
+	if(!is.null(addLines)){
+	          for (i in 1:length(addLines)){
+	                    line.name <- names(addLines)[[i]]
+	                    if (is.null(axesStyles[[ line.name ]])) axesStyles[[line.name]] <- list(lty="solid", lwd=2, col=ifelse(bw==TRUE, "black", "darkorchid3"))
+	          }
+	}
+
 	if (demo == FALSE) {
 			if (is.null(xlab)) {
 				if (!is.null(points$data)) {
@@ -493,7 +503,7 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 	
 	# flip palette?
 	flip <- FALSE
-	if (!is.null(pal) && pal=="flip") {
+	if  (!is.null(pal) && any(pal=="flip")) {
 		flip <- TRUE
 		pal <- NULL
 	}
@@ -565,6 +575,7 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 		rgl::open3d(cex=cex.main)
 		rgl::view3d(-30, -90, fov=0)
 		rgl::light3d(theta = 0, phi = 90, viewpoint.rel = TRUE, ambient = "#FF0000", diffuse = "#FFFFFF", specular = "#FFFFFF")
+
 		rgl::persp3d(P$x, P$y, DV2, xlab = xlab, ylab = ylab, zlab = zlab, color=col2[DV2 - R[1] + 1], main=main, ...)
 
 		if (contour$show == TRUE) {
@@ -624,10 +635,11 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 			# 1a. Projection on bottom of cube
 			  if (length(project) > 0) {
 				  for (p in project) {
-					  if (p %in% c("LOC", "LOIC", "PA1", "PA2", "E2", "K1", "K2")) {
+					  if (p %in% c("LOC", "LOIC", "PA1", "PA2", "E2", "K1", "K2", names(addLines))) {
 						  if (is.null(axesList[[p]])) break;
 								
-						  a0 <- RESCALE(getIntersect2(p0=axesList[[p]]$p0, p1=axesList[[p]]$p1))
+						  a0 <- RESCALE(getIntersect2(p0=axesList[[p]]$p0, p1=axesList[[p]]$p1, function.in=axesList[[p]]$function.in))
+
 						  if (nrow(a0) <= 1) break;
 							  panel.3dscatter(x = a0$X, y = a0$Y, z = rep(RESCALE.Z(min(zlim.final) + .01), nrow(a0)), 
 						  				xlim = xlim, ylim = ylim, zlim = zlim,
@@ -667,7 +679,7 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 				  # project contour on bottom
 				if (contour$show == TRUE | "contour" %in% project) {
 					# "abuse" ggplot to compute the contour lines
-					cs <- ggplot(new2, aes_string(x="x", y="y", fill="z", z="z")) + stat_contour(bins=ifelse(length(pal)>1, length(pal)+1, 8))
+					cs <- ggplot(new2, aes(x=x, y=y, z=z)) + stat_contour(bins=ifelse(length(pal)>1, length(pal)+1, 8))
 					cLines <- ggplot_build(cs)
 					C0 <- cLines$data[[1]][, c("x", "y", "level", "group")]
 					colnames(C0) <- c("X", "Y", "Z", "group")	# C0 keeps the contour lines
@@ -774,7 +786,7 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 					if (suppress.surface==FALSE) {
 						  for (a in axes) {
 							  if (!is.null(axesList[[a]])) {
-								  a0 <- RESCALE(getIntersect2(p0=axesList[[a]]$p0, p1=axesList[[a]]$p1))
+								  a0 <- RESCALE(getIntersect2(p0=axesList[[a]]$p0, p1=axesList[[a]]$p1, function.in=axesList[[a]]$function.in))
 								  if (nrow(a0) <= 1) break;
 					              panel.3dscatter(x = a0$X, y = a0$Y, z = a0$Z, xlim = xlim, ylim = ylim, zlim = zlim,
 					                      	xlim.scaled = xlim.scaled, ylim.scaled = ylim.scaled, zlim.scaled = zlim.scaled, 
@@ -910,9 +922,18 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 
 
 				# local function: compute the surface line, defined by a line on the X-Y plane (p0 = intercept, p1=slope)
-				getIntersect2 <- function(p0, p1, Z=NULL) {
-					X <- seq(min(xlim), max(xlim), length.out=grid*2)
-					Y <- p0 + p1*X
+				getIntersect2 <- function(p0, p1, Z=NULL, function.in="X") {
+				          
+				          if(function.in=="X"){
+				                    X <- seq(min(xlim), max(xlim), length.out=grid*2)
+				                    Y <- p0 + p1*X
+				          }
+				          
+				          if(function.in=="Y"){
+				                    Y <- seq(min(ylim), max(ylim), length.out=grid*2)
+				                    X <- p0 + p1*Y
+				          }
+					
 					n <- data.frame(X, Y)
 					n2 <- add.variables(z~X+Y, n)
 					n2$Z <- b0 + colSums(c(x, y, x2, y2, xy, x3, x2y, xy2, y3)*t(n2[, c("X","Y","X2","Y2","X_Y","X3","X2_Y","X_Y2","Y3")]))
@@ -921,27 +942,33 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 				}
 				
 				axesList <- list()
-				axesList[["LOC"]]  <- list(p0=0, p1=1, style=axesStyles[["LOC"]])
-				axesList[["LOIC"]] <- list(p0=0, p1=-1, style=axesStyles[["LOIC"]])
+				axesList[["LOC"]]  <- list(p0=0, p1=1, style=axesStyles[["LOC"]], function.in="X")
+				axesList[["LOIC"]] <- list(p0=0, p1=-1, style=axesStyles[["LOIC"]], function.in="X")
 				
 				if (x2 != y2 & !is.cubicmodel) {
-					axesList[["PA1"]] <- list(p0=SP$p10, p1=SP$p11, style=axesStyles[["PA1"]])
-					axesList[["PA2"]] <- list(p0=SP$p20, p1=SP$p21, style=axesStyles[["PA2"]])	
+					axesList[["PA1"]] <- list(p0=SP$p10, p1=SP$p11, style=axesStyles[["PA1"]], function.in="X")
+					axesList[["PA2"]] <- list(p0=SP$p20, p1=SP$p21, style=axesStyles[["PA2"]], function.in="X")	
 				}	
 				
-				axesList[["E2"]] <- list(p0=(2*x2/(3*x3)), p1=1, style=axesStyles[["E2"]])
-				
+				axesList[["E2"]] <- list(p0=(2*x2/(3*x3)), p1=1, style=axesStyles[["E2"]], function.in="X")
+
 				if ((model=="CL" | model=="RRCL") & !is.null(fit)){
 				  clrange <- clRange(fit, model=model, alpha=claxes.alpha)
 				  if (!is.na(clrange$k1)){
-				    axesList[["K1"]] <- list(p0=2*clrange$k1, p1=-1, style=axesStyles[["K1"]])
+				    axesList[["K1"]] <- list(p0=2*clrange$k1, p1=-1, style=axesStyles[["K1"]], function.in="X")
 				    } 
 				  if (!is.na(clrange$k2)){
-				    axesList[["K2"]] <- list(p0=2*clrange$k2, p1=-1, style=axesStyles[["K2"]])
+				    axesList[["K2"]] <- list(p0=2*clrange$k2, p1=-1, style=axesStyles[["K2"]], function.in="X")
 				  }
 				}
-
 				
+				if(!is.null(addLines)){
+				          for (i in 1:length(addLines)){
+				                    line.name <- names(addLines)[[i]]
+				                    axesList[[line.name]] <- list(p0=addLines[[i]]$p0, p1=addLines[[i]]$p1, function.in=addLines[[i]]$function.in, style=axesStyles[[line.name]])
+				                    }
+				}
+
 				# Define color range: Relative to surface min/max, or relative to box (zlim)?
 				if (pal.range == "box") {
 					at <- seq(zlim[1], zlim[2], length.out=length(pal)-1)
@@ -1001,10 +1028,11 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 				limits <- c(min(new2$z), max(new2$z))
 			}
 			
-			p1 <- ggplot(new2, aes_string(x="x", y="y", z="z")) + geom_tile(aes_string(fill="z")) + scale_fill_gradientn(zlab, colours=pal, limits=limits) + theme_bw() + theme(aspect.ratio=1) + xlab(xlab) + ylab(ylab)
+			p1 <- ggplot(new2, aes(x=x, y=y, z=z)) + geom_tile(aes(fill=z)) + scale_fill_gradientn(zlab, colours=pal, limits=limits) + theme_bw() + theme(aspect.ratio=1) + xlab(xlab) + ylab(ylab)
 			
 			if (legend==FALSE) {
 				p1 <- p1 + guides(fill=FALSE)
+
 			}
 	
 			p1 <- p1 + stat_contour(bins=40, alpha=.4)
@@ -1016,42 +1044,42 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
 
 				# Find closest values in contours
 				C1 <- C0[C0$level %in% f0(unique(C0$level), contour$highlight), ]
-				p1 <- p1 + geom_path(data=C1, aes_string(x="x", y="y", group="group", z="level"), size=1.1)
+				p1 <- p1 + geom_path(data=C1, aes(x=x, y=y, group=group, z=level), size=1.1)
 			}
 				
 			# (in)congruence lines
 			if ("LOC" %in% axes) {
-				p1 <- p1 + geom_abline(aes(intercept=0, slope=1), color="grey20")
+			  p1 <- p1 + geom_abline(aes(intercept=0, slope=1), color=axesStyles[["LOC"]]$col, linetype=ifelse(axesStyles[["LOC"]]$lty=="solid", 1, 2), size=axesStyles[["LOC"]]$lwd )
 			}
 			if ("LOIC" %in% axes) {
-				p1 <- p1 + geom_abline(aes(intercept=0, slope=-1), linetype="dotted", size=1, color="grey20")
+				p1 <- p1 + geom_abline(aes(intercept=0, slope=-1), color=axesStyles[["LOIC"]]$col, linetype=ifelse(axesStyles[["LOIC"]]$lty=="solid", 1, 2), size=axesStyles[["LOIC"]]$lwd )
 			}
 			
 			if (!model %in% c("absunc", "absdiff")  & !is.cubicmodel){
   			if (("PA1" %in% axes) & !any(is.na(SP[c("p10", "p11")]))) {
-  				p1 <- p1 + geom_abline(data=data.frame(SP[c("p10", "p11")]), aes_string(intercept="p10", slope="p11"), color="grey20")
+  				p1 <- p1 + geom_abline(data=data.frame(SP[c("p10", "p11")]), aes_string(intercept="p10", slope="p11"), color=axesStyles[["PA1"]]$col, linetype=ifelse(axesStyles[["PA1"]]$lty=="solid", 1, 2), size=axesStyles[["PA1"]]$lwd )
   			}
   			if (("PA2" %in% axes) & !any(is.na(SP[c("p20", "p21")]))) {
-  				p1 <- p1 + geom_abline(data=data.frame(SP[c("p20", "p21")]), aes_string(intercept="p20", slope="p21"), linetype="dotted", color="grey20")
+  				p1 <- p1 + geom_abline(data=data.frame(SP[c("p20", "p21")]), aes_string(intercept="p20", slope="p21"), color=axesStyles[["PA2"]]$col, linetype=ifelse(axesStyles[["PA2"]]$lty=="solid", 1, 2), size=axesStyles[["PA2"]]$lwd )
   			}
 			}
 			
 			if ("E2" %in% axes) {
 			  E20 <- 2*x2/(3*x3)
-			  p1 <- p1 + geom_abline(aes(intercept=E20, slope=1), color="deeppink")
+			  p1 <- p1 + geom_abline(aes(intercept=E20, slope=1), aes_string(intercept="p10", slope="p11"), color=axesStyles[["E2"]]$col, linetype=ifelse(axesStyles[["E2"]]$lty=="solid", 1, 2), size=axesStyles[["E2"]]$lwd )
 			}
 			
 			if ("K1" %in% axes) {
 			  k1 <- clRange(fit, model=model, alpha=claxes.alpha)$k1
 			  if (!is.na(k1)){
-			    p1 <- p1 + geom_abline(aes(intercept=2*k1, slope=-1), color="deeppink")
+			    p1 <- p1 + geom_abline(aes(intercept=2*k1, slope=-1), aes_string(intercept="p10", slope="p11"), color=axesStyles[["K1"]]$col, linetype=ifelse(axesStyles[["K1"]]$lty=="solid", 1, 2), size=axesStyles[["K1"]]$lwd )
 			  }
 			}
 			
 			if ("K2" %in% axes) {
 			  k2 <- clRange(fit, model=model, alpha=claxes.alpha)$k2
 			  if (!is.na(k2)){
-			    p1 <- p1 + geom_abline(aes(intercept=2*k2, slope=-1), color="deeppink")
+			    p1 <- p1 + geom_abline(aes(intercept=2*k2, slope=-1), aes_string(intercept="p10", slope="p11"), color=axesStyles[["K2"]]$col, linetype=ifelse(axesStyles[["K2"]]$lty=="solid", 1, 2), size=axesStyles[["K2"]]$lwd)
 			  }
 			}
 			
@@ -1060,7 +1088,15 @@ plotRSA <- function(x=0, y=0, x2=0, y2=0, xy=0, w=0, wx=0, wy=0, x3=0, xy2=0, x2
   				p1 <- p1 + annotate("point", x=SP$X0, y=SP$Y0, z=max(new2$z))
   			}
 			}
-				
+
+			if (!is.null(addPoints)){
+			  for(i in 1:length(addPoints)){
+			    xadd <- addPoints[[i]][1]
+			    yadd <- addPoints[[i]][2]
+			    p1 <- p1 + annotate("point", x=xadd, y=yadd, color="black", size=10*points$cex)
+			  }
+			}
+
 				
 			if (points$show == TRUE) {
 				if (points$out.mark==FALSE) {
